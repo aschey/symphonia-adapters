@@ -1,6 +1,6 @@
-use std::ops::Range;
+mod adts;
 
-use fdk_aac::dec::{Decoder, Transport};
+use fdk_aac::dec::{Decoder, DecoderError, Transport};
 use symphonia_core::{
     audio::{
         AsGenericAudioBufferRef, AudioBuffer, AudioMut, AudioSpec, Channels, GenericAudioBufferRef,
@@ -18,10 +18,25 @@ use symphonia_core::{
         },
         registry::{RegisterableAudioDecoder, SupportedAudioCodec},
     },
+    errors::{Error, unsupported_error},
     formats::Packet,
     io::{BitReaderLtr, FiniteBitStream, ReadBitsLtr},
     support_audio_codec,
 };
+use tracing::warn;
+
+use crate::adts::construct_adts_header;
+
+type Result<T> = symphonia_core::errors::Result<T>;
+
+macro_rules! validate {
+    ($a:expr) => {
+        if !$a {
+            tracing::error!("check failed at {}:{}", file!(), line!());
+            return symphonia_core::errors::decode_error("aac: invalid data");
+        }
+    };
+}
 
 pub struct AacDecoder {
     decoder: Decoder,
@@ -32,40 +47,27 @@ pub struct AacDecoder {
 }
 
 impl AacDecoder {
-    pub fn new(
-        params: &AudioCodecParameters,
-        _opts: &AudioDecoderOptions,
-    ) -> symphonia_core::errors::Result<Self> {
-        println!("{params:?}");
-        let mut m4a_info = M4AInfo::new();
+    pub fn new(params: &AudioCodecParameters, _opts: &AudioDecoderOptions) -> Result<Self> {
+        let mut m4a_info = M4AInfo::default();
         let mut m4a_info_validated = false;
-        // If extra data present, parse the audio specific config
         if let Some(extra_data_buf) = &params.extra_data {
-            // validate!(extra_data_buf.len() >= 2);
+            validate!(extra_data_buf.len() >= 2);
             m4a_info.read(extra_data_buf)?;
             m4a_info_validated = true;
         } else {
-            // Otherwise, assume there is no ASC and use the codec parameters for ADTS.
             m4a_info.otype = M4AType::Lc;
-            // m4a_info.samples = 1024;
-            // m4ainfo.srate = 44100;
-
-            m4a_info.srate = match params.sample_rate {
-                Some(rate) => rate,
-                None => 0, //return unsupported_error("aac: sample rate is required"),
-            };
+            m4a_info.sample_rate = params.sample_rate.unwrap_or_default();
+            m4a_info.sample_rate_index = sample_rate_index(m4a_info.sample_rate);
 
             m4a_info.channels = if let Some(channels) = &params.channels {
-                channels.count()
+                channels.count() as u8
             } else {
-                0 //return unsupported_error("aac: channels or channel layout is required");
+                return unsupported_error("aac: channels or channel layout is required");
             };
         }
         let decoder = Decoder::new(Transport::Adts);
-        println!("CHANNELS {}", m4a_info.channels);
-        let channels = map_to_channels(m4a_info.channels).unwrap();
 
-        let buf = AudioBuffer::new(AudioSpec::new(m4a_info.srate, channels), m4a_info.samples);
+        let buf = audio_buffer(&m4a_info)?;
         Ok(Self {
             decoder,
             codec_params: params.clone(),
@@ -76,57 +78,71 @@ impl AacDecoder {
     }
 }
 
+fn audio_buffer(m4a_info: &M4AInfo) -> Result<AudioBuffer<i16>> {
+    if m4a_info.channels < 1 || m4a_info.channels > 2 {
+        return unsupported_error("aac: unsupported number of channels");
+    }
+    let channels = map_to_channels(m4a_info.channels).expect("invalid channels");
+    Ok(AudioBuffer::new(
+        AudioSpec::new(m4a_info.sample_rate, channels),
+        m4a_info.samples,
+    ))
+}
+
+fn sample_rate_index(sample_rate: u32) -> u8 {
+    AAC_SAMPLE_RATES
+        .iter()
+        .position(|s| *s == sample_rate)
+        .unwrap_or_default() as u8
+}
+
 impl AudioDecoder for AacDecoder {
     fn reset(&mut self) {}
 
     fn codec_info(&self) -> &CodecInfo {
-        &Self::supported_codecs().first().unwrap().info
+        &Self::supported_codecs()
+            .first()
+            .expect("missing codecs")
+            .info
     }
 
     fn codec_params(&self) -> &AudioCodecParameters {
         &self.codec_params
     }
 
-    fn decode(
-        &mut self,
-        packet: &Packet,
-    ) -> symphonia_core::errors::Result<GenericAudioBufferRef<'_>> {
+    fn decode(&mut self, packet: &Packet) -> Result<GenericAudioBufferRef<'_>> {
         let adts_header = construct_adts_header(
             self.m4a_info.otype,
-            AAC_SAMPLE_RATES
-                .iter()
-                .position(|s| *s == self.m4a_info.srate)
-                .unwrap() as u8,
-            self.m4a_info.channels as u8,
+            self.m4a_info.sample_rate_index,
+            self.m4a_info.channels,
             packet.buf().len(),
         );
-        let bytes_filled = self
-            .decoder
+        self.decoder
             .fill(&[&adts_header, packet.buf()].concat())
             .unwrap();
-        println!("filled {bytes_filled}");
         let mut pcm = vec![0; 8192];
         match self.decoder.decode_frame(&mut pcm) {
-            Ok(_) => {
-                println!("SUCCESS");
+            Ok(_) => {}
+            Err(e @ DecoderError::TRANSPORT_SYNC_ERROR) => {
+                warn!("aac: transport sync error: {}", e.message());
+                self.buf.clear();
+                return Ok(self.buf.as_generic_audio_buffer_ref());
             }
             Err(e) => {
-                println!("{e:?}");
-                self.buf.clear();
-
-                return Ok(self.buf.as_generic_audio_buffer_ref());
+                return Err(Error::DecodeError(e.message()));
             }
         }
         if !self.m4a_info_validated {
             let stream_info = self.decoder.stream_info();
             let capacity = self.decoder.decoded_frame_size();
             let channels = stream_info.numChannels as usize;
-            println!("{stream_info:?}");
-            println!("{capacity}");
+            let sample_rate = stream_info.aacSampleRate as u32;
+
             self.m4a_info = M4AInfo {
                 otype: M4A_TYPES[stream_info.aot as usize],
-                channels: stream_info.numChannels as usize,
-                srate: stream_info.aacSampleRate as u32,
+                channels: stream_info.numChannels as u8,
+                sample_rate,
+                sample_rate_index: sample_rate_index(sample_rate),
                 samples: capacity / channels,
                 ps_present: false,
                 sbr_present: false,
@@ -135,41 +151,17 @@ impl AudioDecoder for AacDecoder {
             let channels = map_to_channels(self.m4a_info.channels).unwrap();
 
             self.buf = AudioBuffer::new(
-                AudioSpec::new(self.m4a_info.srate, channels),
+                AudioSpec::new(stream_info.sampleRate as u32, channels),
                 self.m4a_info.samples,
             );
             self.m4a_info_validated = true;
         }
-
-        let num_channels = self.decoder.stream_info().numChannels;
-        // let sample_rate = self.decoder.stream_info().sampleRate;
         let capacity = self.decoder.decoded_frame_size();
-        //
-        // let channels = map_to_channels(num_channels as usize).unwrap();
-        // println!("{:?}", self.decoder.stream_info());
-        // println!("capacity {capacity}");
-
-        //  self.buf = AudioBuffer::new(AudioSpec::new(sample_rate as u32, channels), capacity);
 
         let pcm = &pcm[..capacity];
         self.buf.clear();
 
         self.buf.render_uninit(None);
-        // match num_channels {
-        //     1 => {
-        //         self.buf.plane_mut(0).unwrap().copy_from_slice(pcm);
-        //     }
-        //     2 => {
-        //         let (l, r) = self.buf.plane_pair_mut(0, 1).unwrap();
-        //         for (j, i) in (0..pcm.len()).step_by(2).enumerate() {
-        //             l[j] = pcm[i];
-        //             r[j] = pcm[i + 1];
-        //         }
-        //     }
-        //     _ => {
-        //         unreachable!()
-        //     }
-        // }
         self.buf.copy_from_slice_interleaved(&pcm);
         Ok(self.buf.as_generic_audio_buffer_ref())
     }
@@ -191,7 +183,6 @@ impl RegisterableAudioDecoder for AacDecoder {
     where
         Self: Sized,
     {
-        println!("HERE");
         Ok(Box::new(AacDecoder::new(params, opts)?))
     }
 
@@ -211,10 +202,12 @@ impl RegisterableAudioDecoder for AacDecoder {
     }
 }
 
+#[derive(Default)]
 struct M4AInfo {
     otype: M4AType,
-    srate: u32,
-    channels: usize,
+    sample_rate: u32,
+    sample_rate_index: u8,
+    channels: u8,
     samples: usize,
     sbr_ps_info: Option<(u32, usize)>,
     sbr_present: bool,
@@ -222,18 +215,6 @@ struct M4AInfo {
 }
 
 impl M4AInfo {
-    fn new() -> Self {
-        Self {
-            otype: M4AType::None,
-            srate: 0,
-            channels: 0,
-            samples: 0,
-            sbr_ps_info: Option::None,
-            sbr_present: false,
-            ps_present: false,
-        }
-    }
-
     fn read_object_type<B: ReadBitsLtr>(bs: &mut B) -> symphonia_core::errors::Result<M4AType> {
         let otypeidx = match bs.read_bits_leq32(5)? {
             idx if idx < 31 => idx as usize,
@@ -271,11 +252,12 @@ impl M4AInfo {
         let mut bs = BitReaderLtr::new(buf);
 
         self.otype = Self::read_object_type(&mut bs)?;
-        self.srate = Self::read_sampling_frequency(&mut bs)?;
+        self.sample_rate = Self::read_sampling_frequency(&mut bs)?;
+        self.sample_rate_index = sample_rate_index(self.sample_rate);
 
         //validate!(self.srate > 0);
 
-        self.channels = Self::read_channel_config(&mut bs)?;
+        self.channels = Self::read_channel_config(&mut bs)? as u8;
         println!("CHANNELS2 {}", self.channels);
 
         if (self.otype == M4AType::Sbr) || (self.otype == M4AType::PS) {
@@ -461,14 +443,15 @@ impl std::fmt::Display for M4AInfo {
         write!(
             f,
             "MPEG 4 Audio {}, {} Hz, {} channels, {} samples per frame",
-            self.otype, self.srate, self.channels, self.samples
+            self.otype, self.sample_rate, self.channels, self.samples
         )
     }
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Default, Copy, Debug, PartialEq, Eq)]
 pub enum M4AType {
+    #[default]
     None,
     Main,
     Lc,
@@ -617,7 +600,7 @@ pub const AAC_SAMPLE_RATES: [u32; 16] = [
 /// Mapping of AAC channel configuration bits to number of channels.
 pub const AAC_CHANNELS: [usize; 8] = [0, 1, 2, 3, 4, 5, 6, 8];
 
-pub fn map_to_channels(num_channels: usize) -> Option<Channels> {
+pub fn map_to_channels(num_channels: u8) -> Option<Channels> {
     let channels = match num_channels {
         1 => layouts::CHANNEL_LAYOUT_MONO,
         2 => layouts::CHANNEL_LAYOUT_STEREO,
@@ -631,107 +614,3 @@ pub fn map_to_channels(num_channels: usize) -> Option<Channels> {
 
     Some(channels)
 }
-
-pub fn construct_adts_header(
-    object_type: M4AType,
-    sample_freq_index: u8,
-    channel_config: u8,
-    num_bytes: usize,
-) -> Vec<u8> {
-    // ADTS header wiki reference: https://wiki.multimedia.cx/index.php/ADTS#:~:text=Audio%20Data%20Transport%20Stream%20(ADTS,to%20stream%20audio%2C%20usually%20AAC.
-
-    // byte7 and byte9 not included without CRC
-    let adts_header_length = 7;
-
-    // AAAA_AAAA
-    let byte0 = 0b1111_1111;
-
-    // AAAA_BCCD
-    // D: Only support 1 (without CRC)
-    let byte1 = 0b1111_0001;
-
-    // EEFF_FFGH
-    let mut byte2 = 0b0000_0000;
-    // let object_type = match object_type {
-    //     AudioObjectType::AacLowComplexity => 2,
-    //     // Audio object types 5 (SBR) and 29 (PS) are coerced to type 2 (AAC-LC).
-    //     // The decoder will have to detect SBR/PS. This is called "Implicit
-    //     // Signaling" and it's the only option for ADTS.
-    //     AudioObjectType::SpectralBandReplication => 2, // SBR, needed to support HE-AAC v1
-    //     AudioObjectType::ParametricStereo => 2,        // PS, needed to support HE-AAC v2
-    //     aot => return Err(Error::UnsupportedObjectType(aot)),
-    // };
-    let adts_object_type = object_type as u8 - 1;
-    byte2 = (byte2 << 2) | adts_object_type; // EE
-
-    // let sample_freq_index = match sample_freq_index {
-    //     SampleFreqIndex::Freq96000 => 0,
-    //     SampleFreqIndex::Freq88200 => 1,
-    //     SampleFreqIndex::Freq64000 => 2,
-    //     SampleFreqIndex::Freq48000 => 3,
-    //     SampleFreqIndex::Freq44100 => 4,
-    //     SampleFreqIndex::Freq32000 => 5,
-    //     SampleFreqIndex::Freq24000 => 6,
-    //     SampleFreqIndex::Freq22050 => 7,
-    //     SampleFreqIndex::Freq16000 => 8,
-    //     SampleFreqIndex::Freq12000 => 9,
-    //     SampleFreqIndex::Freq11025 => 10,
-    //     SampleFreqIndex::Freq8000 => 11,
-    //     SampleFreqIndex::Freq7350 => 12,
-    //     // 13-14 = reserved
-    //     // 15 = explicit frequency (forbidden in adts)
-    // };
-    byte2 = (byte2 << 4) | sample_freq_index; // FFFF
-    byte2 = (byte2 << 1) | 0b1; // G
-    //
-    // let channel_config = match channel_config {
-    //     // 0 = for when channel config is sent via an inband PCE
-    //     ChannelConfig::Mono => 1,
-    //     ChannelConfig::Stereo => 2,
-    //     ChannelConfig::Three => 3,
-    //     ChannelConfig::Four => 4,
-    //     ChannelConfig::Five => 5,
-    //     ChannelConfig::FiveOne => 6,
-    //     ChannelConfig::SevenOne => 7,
-    //     // 8-15 = reserved
-    // };
-    byte2 = (byte2 << 1) | get_bits_u8(channel_config, 6..6); // H
-
-    // HHIJ_KLMM
-    let mut byte3 = 0b0000_0000;
-    byte3 = (byte3 << 2) | get_bits_u8(channel_config, 7..8); // HH
-    byte3 = (byte3 << 4) | 0b1111; // IJKL
-
-    let frame_length = adts_header_length + num_bytes as u16;
-    byte3 = (byte3 << 2) | get_bits(frame_length, 3..5) as u8; // MM
-
-    // MMMM_MMMM
-    let byte4 = get_bits(frame_length, 6..13) as u8;
-
-    // MMMO_OOOO
-    let mut byte5 = 0b0000_0000;
-    byte5 = (byte5 << 3) | get_bits(frame_length, 14..16) as u8;
-    byte5 = (byte5 << 5) | 0b11111; // OOOOO
-
-    // OOOO_OOPP
-    let mut byte6 = 0b0000_0000;
-    byte6 = (byte6 << 6) | 0b111111; // OOOOOO
-    byte6 = (byte6 << 2) | 0b00; // PP
-
-    return vec![byte0, byte1, byte2, byte3, byte4, byte5, byte6];
-}
-
-fn get_bits(byte: u16, range: Range<u16>) -> u16 {
-    let shaved_left = byte << range.start - 1;
-    let moved_back = shaved_left >> range.start - 1;
-    let shave_right = moved_back >> 16 - range.end;
-    return shave_right;
-}
-
-fn get_bits_u8(byte: u8, range: Range<u8>) -> u8 {
-    let shaved_left = byte << range.start - 1;
-    let moved_back = shaved_left >> range.start - 1;
-    let shave_right = moved_back >> 8 - range.end;
-    return shave_right;
-}
-

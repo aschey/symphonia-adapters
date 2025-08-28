@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 symphonia-core = { workspace = true }
 fdk-aac = { workspace = true }
+tracing = { workspace = true }
