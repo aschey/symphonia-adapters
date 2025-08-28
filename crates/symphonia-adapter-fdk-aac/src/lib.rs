@@ -8,7 +8,7 @@ use symphonia_core::audio::{
 use symphonia_core::codecs::CodecInfo;
 use symphonia_core::codecs::audio::well_known::CODEC_ID_AAC;
 use symphonia_core::codecs::audio::well_known::profiles::{
-    CODEC_PROFILE_AAC_HE, CODEC_PROFILE_AAC_HE_V2,
+    CODEC_PROFILE_AAC_HE, CODEC_PROFILE_AAC_HE_V2, CODEC_PROFILE_AAC_LC,
 };
 use symphonia_core::codecs::audio::{
     AudioCodecParameters, AudioDecoder, AudioDecoderOptions, FinalizeResult,
@@ -180,8 +180,6 @@ impl RegisterableAudioDecoder for AacDecoder {
     }
 
     fn supported_codecs() -> &'static [SupportedAudioCodec] {
-        use symphonia_core::codecs::audio::well_known::profiles::CODEC_PROFILE_AAC_LC;
-
         &[support_audio_codec!(
             CODEC_ID_AAC,
             "aac",
