@@ -1,11 +1,9 @@
 mod adts;
+mod meta;
 
 use fdk_aac::dec::{Decoder, DecoderError, Transport};
 use symphonia_core::{
-    audio::{
-        AsGenericAudioBufferRef, AudioBuffer, AudioMut, AudioSpec, Channels, GenericAudioBufferRef,
-        layouts,
-    },
+    audio::{AsGenericAudioBufferRef, AudioBuffer, AudioMut, AudioSpec, GenericAudioBufferRef},
     codec_profile,
     codecs::{
         CodecInfo,
@@ -13,29 +11,35 @@ use symphonia_core::{
             AudioCodecParameters, AudioDecoder, AudioDecoderOptions, FinalizeResult,
             well_known::{
                 CODEC_ID_AAC,
-                profiles::{CODEC_PROFILE_AAC_LTP, CODEC_PROFILE_AAC_SSR},
+                profiles::{CODEC_PROFILE_AAC_HE, CODEC_PROFILE_AAC_HE_V2},
             },
         },
         registry::{RegisterableAudioDecoder, SupportedAudioCodec},
     },
     errors::{Error, unsupported_error},
     formats::Packet,
-    io::{BitReaderLtr, FiniteBitStream, ReadBitsLtr},
     support_audio_codec,
 };
 use tracing::warn;
 
-use crate::adts::construct_adts_header;
+use crate::{
+    adts::construct_adts_header,
+    macros::validate,
+    meta::{M4A_TYPES, M4AInfo, M4AType, map_to_channels, sample_rate_index},
+};
 
 type Result<T> = symphonia_core::errors::Result<T>;
 
-macro_rules! validate {
-    ($a:expr) => {
-        if !$a {
-            tracing::error!("check failed at {}:{}", file!(), line!());
-            return symphonia_core::errors::decode_error("aac: invalid data");
-        }
-    };
+mod macros {
+    macro_rules! validate {
+        ($a:expr) => {
+            if !$a {
+                tracing::error!("check failed at {}:{}", file!(), line!());
+                return symphonia_core::errors::decode_error("aac: invalid data");
+            }
+        };
+    }
+    pub(crate) use validate;
 }
 
 pub struct AacDecoder {
@@ -89,13 +93,6 @@ fn audio_buffer(m4a_info: &M4AInfo) -> Result<AudioBuffer<i16>> {
     ))
 }
 
-fn sample_rate_index(sample_rate: u32) -> u8 {
-    AAC_SAMPLE_RATES
-        .iter()
-        .position(|s| *s == sample_rate)
-        .unwrap_or_default() as u8
-}
-
 impl AudioDecoder for AacDecoder {
     fn reset(&mut self) {}
 
@@ -144,9 +141,6 @@ impl AudioDecoder for AacDecoder {
                 sample_rate,
                 sample_rate_index: sample_rate_index(sample_rate),
                 samples: capacity / channels,
-                ps_present: false,
-                sbr_present: false,
-                sbr_ps_info: None,
             };
             let channels = map_to_channels(self.m4a_info.channels).unwrap();
 
@@ -193,424 +187,11 @@ impl RegisterableAudioDecoder for AacDecoder {
             CODEC_ID_AAC,
             "aac",
             "Advanced Audio Coding",
-            &[codec_profile!(
-                CODEC_PROFILE_AAC_LC,
-                "aac-lc",
-                "Low Complexity"
-            ),]
+            &[
+                codec_profile!(CODEC_PROFILE_AAC_LC, "aac-lc", "Low Complexity"),
+                codec_profile!(CODEC_PROFILE_AAC_HE, "aac-he", "High Efficiency"),
+                codec_profile!(CODEC_PROFILE_AAC_HE_V2, "aac-he-v2", "High Efficiency V2"),
+            ]
         )]
     }
-}
-
-#[derive(Default)]
-struct M4AInfo {
-    otype: M4AType,
-    sample_rate: u32,
-    sample_rate_index: u8,
-    channels: u8,
-    samples: usize,
-    sbr_ps_info: Option<(u32, usize)>,
-    sbr_present: bool,
-    ps_present: bool,
-}
-
-impl M4AInfo {
-    fn read_object_type<B: ReadBitsLtr>(bs: &mut B) -> symphonia_core::errors::Result<M4AType> {
-        let otypeidx = match bs.read_bits_leq32(5)? {
-            idx if idx < 31 => idx as usize,
-            31 => (bs.read_bits_leq32(6)? + 32) as usize,
-            _ => unreachable!(),
-        };
-
-        if otypeidx >= M4A_TYPES.len() {
-            Ok(M4AType::Unknown)
-        } else {
-            Ok(M4A_TYPES[otypeidx])
-        }
-    }
-
-    fn read_sampling_frequency<B: ReadBitsLtr>(bs: &mut B) -> symphonia_core::errors::Result<u32> {
-        match bs.read_bits_leq32(4)? {
-            idx if idx < 15 => Ok(AAC_SAMPLE_RATES[idx as usize]),
-            _ => {
-                let srate = (0xf << 20) & bs.read_bits_leq32(20)?;
-                Ok(srate)
-            }
-        }
-    }
-
-    fn read_channel_config<B: ReadBitsLtr>(bs: &mut B) -> symphonia_core::errors::Result<usize> {
-        let chidx = bs.read_bits_leq32(4)? as usize;
-        if chidx < AAC_CHANNELS.len() {
-            Ok(AAC_CHANNELS[chidx])
-        } else {
-            Ok(chidx)
-        }
-    }
-
-    fn read(&mut self, buf: &[u8]) -> symphonia_core::errors::Result<()> {
-        let mut bs = BitReaderLtr::new(buf);
-
-        self.otype = Self::read_object_type(&mut bs)?;
-        self.sample_rate = Self::read_sampling_frequency(&mut bs)?;
-        self.sample_rate_index = sample_rate_index(self.sample_rate);
-
-        //validate!(self.srate > 0);
-
-        self.channels = Self::read_channel_config(&mut bs)? as u8;
-        println!("CHANNELS2 {}", self.channels);
-
-        if (self.otype == M4AType::Sbr) || (self.otype == M4AType::PS) {
-            let ext_srate = Self::read_sampling_frequency(&mut bs)?;
-            self.otype = Self::read_object_type(&mut bs)?;
-
-            let ext_chans = if self.otype == M4AType::ER_BSAC {
-                Self::read_channel_config(&mut bs)?
-            } else {
-                0
-            };
-
-            self.sbr_ps_info = Some((ext_srate, ext_chans));
-        }
-
-        match self.otype {
-            M4AType::Main
-            | M4AType::Lc
-            | M4AType::Ssr
-            | M4AType::Scalable
-            | M4AType::TwinVQ
-            | M4AType::ER_AAC_LC
-            | M4AType::ER_AAC_LTP
-            | M4AType::ER_AAC_Scalable
-            | M4AType::ER_TwinVQ
-            | M4AType::ER_BSAC
-            | M4AType::ER_AAC_LD => {
-                // GASpecificConfig
-                let short_frame = bs.read_bool()?;
-
-                self.samples = if short_frame { 960 } else { 1024 };
-
-                let depends_on_core = bs.read_bool()?;
-
-                if depends_on_core {
-                    let _delay = bs.read_bits_leq32(14)?;
-                }
-
-                let extension_flag = bs.read_bool()?;
-
-                if self.channels == 0 {
-                    // return unsupported_error("aac: program config element");
-                }
-
-                if (self.otype == M4AType::Scalable) || (self.otype == M4AType::ER_AAC_Scalable) {
-                    let _layer = bs.read_bits_leq32(3)?;
-                }
-
-                if extension_flag {
-                    if self.otype == M4AType::ER_BSAC {
-                        let _num_subframes = bs.read_bits_leq32(5)? as usize;
-                        let _layer_length = bs.read_bits_leq32(11)?;
-                    }
-
-                    if (self.otype == M4AType::ER_AAC_LC)
-                        || (self.otype == M4AType::ER_AAC_LTP)
-                        || (self.otype == M4AType::ER_AAC_Scalable)
-                        || (self.otype == M4AType::ER_AAC_LD)
-                    {
-                        let _section_data_resilience = bs.read_bool()?;
-                        let _scalefactors_resilience = bs.read_bool()?;
-                        let _spectral_data_resilience = bs.read_bool()?;
-                    }
-
-                    let extension_flag3 = bs.read_bool()?;
-
-                    if extension_flag3 {
-                        // return unsupported_error("aac: version3 extensions");
-                    }
-                }
-            }
-            // M4AType::Celp => {
-            //     return unsupported_error("aac: CELP config");
-            // }
-            // M4AType::Hvxc => {
-            //     return unsupported_error("aac: HVXC config");
-            // }
-            // M4AType::Ttsi => {
-            //     return unsupported_error("aac: TTS config");
-            // }
-            // M4AType::MainSynth
-            // | M4AType::WavetableSynth
-            // | M4AType::GeneralMIDI
-            // | M4AType::Algorithmic => {
-            //     return unsupported_error("aac: structured audio config");
-            // }
-            // M4AType::ER_CELP => {
-            //     return unsupported_error("aac: ER CELP config");
-            // }
-            // M4AType::ER_HVXC => {
-            //     return unsupported_error("aac: ER HVXC config");
-            // }
-            // M4AType::ER_HILN | M4AType::ER_Parametric => {
-            //     return unsupported_error("aac: parametric config");
-            // }
-            // M4AType::Ssc => {
-            //     return unsupported_error("aac: SSC config");
-            // }
-            // M4AType::MPEGSurround => {
-            //     // bs.ignore_bits(1)?; // sacPayloadEmbedding
-            //     return unsupported_error("aac: MPEG Surround config");
-            // }
-            // M4AType::Layer1 | M4AType::Layer2 | M4AType::Layer3 => {
-            //     return unsupported_error("aac: MPEG Layer 1/2/3 config");
-            // }
-            // M4AType::Dst => {
-            //     return unsupported_error("aac: DST config");
-            // }
-            // M4AType::Als => {
-            //     // bs.ignore_bits(5)?; // fillBits
-            //     return unsupported_error("aac: ALS config");
-            // }
-            // M4AType::Sls | M4AType::SLSNonCore => {
-            //     return unsupported_error("aac: SLS config");
-            // }
-            // M4AType::ER_AAC_ELD => {
-            //     return unsupported_error("aac: ELD config");
-            // }
-            // M4AType::SMRSimple | M4AType::SMRMain => {
-            //     return unsupported_error("aac: symbolic music config");
-            // }
-            _ => {}
-        };
-
-        match self.otype {
-            M4AType::ER_AAC_LC
-            | M4AType::ER_AAC_LTP
-            | M4AType::ER_AAC_Scalable
-            | M4AType::ER_TwinVQ
-            | M4AType::ER_BSAC
-            | M4AType::ER_AAC_LD
-            | M4AType::ER_CELP
-            | M4AType::ER_HVXC
-            | M4AType::ER_HILN
-            | M4AType::ER_Parametric
-            | M4AType::ER_AAC_ELD => {
-                let ep_config = bs.read_bits_leq32(2)?;
-
-                if (ep_config == 2) || (ep_config == 3) {
-                    //  return unsupported_error("aac: error protection config");
-                }
-                if ep_config == 3 {
-                    let direct_mapping = bs.read_bit()?;
-                    //     validate!(direct_mapping);
-                }
-            }
-            _ => {}
-        };
-
-        if self.sbr_ps_info.is_some() && (bs.bits_left() >= 16) {
-            let sync = bs.read_bits_leq32(11)?;
-
-            if sync == 0x2B7 {
-                let ext_otype = Self::read_object_type(&mut bs)?;
-                if ext_otype == M4AType::Sbr {
-                    self.sbr_present = bs.read_bool()?;
-                    if self.sbr_present {
-                        let _ext_srate = Self::read_sampling_frequency(&mut bs)?;
-                        if bs.bits_left() >= 12 {
-                            let sync = bs.read_bits_leq32(11)?;
-                            if sync == 0x548 {
-                                self.ps_present = bs.read_bool()?;
-                            }
-                        }
-                    }
-                }
-                if ext_otype == M4AType::PS {
-                    self.sbr_present = bs.read_bool()?;
-                    if self.sbr_present {
-                        let _ext_srate = Self::read_sampling_frequency(&mut bs)?;
-                    }
-                    let _ext_channels = bs.read_bits_leq32(4)?;
-                }
-            }
-        }
-
-        Ok(())
-    }
-}
-
-impl std::fmt::Display for M4AInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "MPEG 4 Audio {}, {} Hz, {} channels, {} samples per frame",
-            self.otype, self.sample_rate, self.channels, self.samples
-        )
-    }
-}
-
-#[allow(non_camel_case_types)]
-#[derive(Clone, Default, Copy, Debug, PartialEq, Eq)]
-pub enum M4AType {
-    #[default]
-    None,
-    Main,
-    Lc,
-    Ssr,
-    Ltp,
-    Sbr,
-    Scalable,
-    TwinVQ,
-    Celp,
-    Hvxc,
-    Ttsi,
-    MainSynth,
-    WavetableSynth,
-    GeneralMIDI,
-    Algorithmic,
-    ER_AAC_LC,
-    ER_AAC_LTP,
-    ER_AAC_Scalable,
-    ER_TwinVQ,
-    ER_BSAC,
-    ER_AAC_LD,
-    ER_CELP,
-    ER_HVXC,
-    ER_HILN,
-    ER_Parametric,
-    Ssc,
-    PS,
-    MPEGSurround,
-    Layer1,
-    Layer2,
-    Layer3,
-    Dst,
-    Als,
-    Sls,
-    SLSNonCore,
-    ER_AAC_ELD,
-    SMRSimple,
-    SMRMain,
-    Reserved,
-    Unknown,
-}
-
-pub const M4A_TYPES: &[M4AType] = &[
-    M4AType::None,
-    M4AType::Main,
-    M4AType::Lc,
-    M4AType::Ssr,
-    M4AType::Ltp,
-    M4AType::Sbr,
-    M4AType::Scalable,
-    M4AType::TwinVQ,
-    M4AType::Celp,
-    M4AType::Hvxc,
-    M4AType::Reserved,
-    M4AType::Reserved,
-    M4AType::Ttsi,
-    M4AType::MainSynth,
-    M4AType::WavetableSynth,
-    M4AType::GeneralMIDI,
-    M4AType::Algorithmic,
-    M4AType::ER_AAC_LC,
-    M4AType::Reserved,
-    M4AType::ER_AAC_LTP,
-    M4AType::ER_AAC_Scalable,
-    M4AType::ER_TwinVQ,
-    M4AType::ER_BSAC,
-    M4AType::ER_AAC_LD,
-    M4AType::ER_CELP,
-    M4AType::ER_HVXC,
-    M4AType::ER_HILN,
-    M4AType::ER_Parametric,
-    M4AType::Ssc,
-    M4AType::PS,
-    M4AType::MPEGSurround,
-    M4AType::Reserved, /*escape*/
-    M4AType::Layer1,
-    M4AType::Layer2,
-    M4AType::Layer3,
-    M4AType::Dst,
-    M4AType::Als,
-    M4AType::Sls,
-    M4AType::SLSNonCore,
-    M4AType::ER_AAC_ELD,
-    M4AType::SMRSimple,
-    M4AType::SMRMain,
-];
-
-impl std::fmt::Display for M4AType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", M4A_TYPE_NAMES[*self as usize])
-    }
-}
-// https://en.wikipedia.org/wiki/MPEG-4_Part_3#MPEG-4_Audio_Object_Types
-pub const M4A_TYPE_NAMES: &[&str] = &[
-    "None",
-    "AAC Main",
-    "AAC LC",
-    "AAC SSR",
-    "AAC LTP",
-    "SBR",
-    "AAC Scalable",
-    "TwinVQ",
-    "CELP",
-    "HVXC",
-    // "(reserved10)",
-    // "(reserved11)",
-    "TTSI",
-    "Main synthetic",
-    "Wavetable synthesis",
-    "General MIDI",
-    "Algorithmic Synthesis and Audio FX",
-    "ER AAC LC",
-    // "(reserved18)",
-    "ER AAC LTP",
-    "ER AAC Scalable",
-    "ER TwinVQ",
-    "ER BSAC",
-    "ER AAC LD",
-    "ER CELP",
-    "ER HVXC",
-    "ER HILN",
-    "ER Parametric",
-    "SSC",
-    "PS",
-    "MPEG Surround",
-    // "(escape)",
-    "Layer-1",
-    "Layer-2",
-    "Layer-3",
-    "DST",
-    "ALS",
-    "SLS",
-    "SLS non-core",
-    "ER AAC ELD",
-    "SMR Simple",
-    "SMR Main",
-    "(reserved)",
-    "(unknown)",
-];
-
-pub const AAC_SAMPLE_RATES: [u32; 16] = [
-    96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350, 0, 0,
-    0,
-];
-
-/// Mapping of AAC channel configuration bits to number of channels.
-pub const AAC_CHANNELS: [usize; 8] = [0, 1, 2, 3, 4, 5, 6, 8];
-
-pub fn map_to_channels(num_channels: u8) -> Option<Channels> {
-    let channels = match num_channels {
-        1 => layouts::CHANNEL_LAYOUT_MONO,
-        2 => layouts::CHANNEL_LAYOUT_STEREO,
-        3 => layouts::CHANNEL_LAYOUT_AAC_3P0,
-        4 => layouts::CHANNEL_LAYOUT_AAC_4P0,
-        5 => layouts::CHANNEL_LAYOUT_AAC_5P0,
-        6 => layouts::CHANNEL_LAYOUT_AAC_5P1,
-        8 => layouts::CHANNEL_LAYOUT_AAC_7P1,
-        _ => return None,
-    };
-
-    Some(channels)
 }
