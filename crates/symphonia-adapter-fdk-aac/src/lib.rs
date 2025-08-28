@@ -2,31 +2,26 @@ mod adts;
 mod meta;
 
 use fdk_aac::dec::{Decoder, DecoderError, Transport};
-use symphonia_core::{
-    audio::{AsGenericAudioBufferRef, AudioBuffer, AudioMut, AudioSpec, GenericAudioBufferRef},
-    codec_profile,
-    codecs::{
-        CodecInfo,
-        audio::{
-            AudioCodecParameters, AudioDecoder, AudioDecoderOptions, FinalizeResult,
-            well_known::{
-                CODEC_ID_AAC,
-                profiles::{CODEC_PROFILE_AAC_HE, CODEC_PROFILE_AAC_HE_V2},
-            },
-        },
-        registry::{RegisterableAudioDecoder, SupportedAudioCodec},
-    },
-    errors::{Error, unsupported_error},
-    formats::Packet,
-    support_audio_codec,
+use symphonia_core::audio::{
+    AsGenericAudioBufferRef, AudioBuffer, AudioMut, AudioSpec, GenericAudioBufferRef,
 };
+use symphonia_core::codecs::CodecInfo;
+use symphonia_core::codecs::audio::well_known::CODEC_ID_AAC;
+use symphonia_core::codecs::audio::well_known::profiles::{
+    CODEC_PROFILE_AAC_HE, CODEC_PROFILE_AAC_HE_V2,
+};
+use symphonia_core::codecs::audio::{
+    AudioCodecParameters, AudioDecoder, AudioDecoderOptions, FinalizeResult,
+};
+use symphonia_core::codecs::registry::{RegisterableAudioDecoder, SupportedAudioCodec};
+use symphonia_core::errors::{Error, unsupported_error};
+use symphonia_core::formats::Packet;
+use symphonia_core::{codec_profile, support_audio_codec};
 use tracing::warn;
 
-use crate::{
-    adts::construct_adts_header,
-    macros::validate,
-    meta::{M4A_TYPES, M4AInfo, M4AType, map_to_channels, sample_rate_index},
-};
+use crate::adts::construct_adts_header;
+use crate::macros::validate;
+use crate::meta::{M4A_TYPES, M4AInfo, M4AType, map_to_channels, sample_rate_index};
 
 type Result<T> = symphonia_core::errors::Result<T>;
 

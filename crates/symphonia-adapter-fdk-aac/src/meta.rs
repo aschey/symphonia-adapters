@@ -1,9 +1,8 @@
-use crate::macros::validate;
+use symphonia_core::audio::{Channels, layouts};
 use symphonia_core::errors::Result;
-use symphonia_core::{
-    audio::{Channels, layouts},
-    io::{BitReaderLtr, ReadBitsLtr},
-};
+use symphonia_core::io::{BitReaderLtr, ReadBitsLtr};
+
+use crate::macros::validate;
 
 #[derive(Default)]
 pub(crate) struct M4AInfo {
@@ -164,7 +163,7 @@ pub const M4A_TYPES: &[M4AType] = &[
     M4AType::Ssc,
     M4AType::PS,
     M4AType::MPEGSurround,
-    M4AType::Reserved, /*escape*/
+    M4AType::Reserved, /* escape */
     M4AType::Layer1,
     M4AType::Layer2,
     M4AType::Layer3,
