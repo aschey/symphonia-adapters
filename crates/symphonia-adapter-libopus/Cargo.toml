@@ -1,0 +1,6 @@
+[package]
+name = "symphonia-adapter-libopus"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
