@@ -43,6 +43,7 @@ pub struct AacDecoder {
     codec_params: AudioCodecParameters,
     m4a_info: M4AInfo,
     m4a_info_validated: bool,
+    pcm: [i16; 8192],
 }
 
 impl AacDecoder {
@@ -66,24 +67,45 @@ impl AacDecoder {
         }
         let decoder = Decoder::new(Transport::Adts);
 
-        let buf = audio_buffer(&m4a_info)?;
+        let buf = audio_buffer(&m4a_info, m4a_info.sample_rate)?;
         Ok(Self {
             decoder,
             codec_params: params.clone(),
             buf,
             m4a_info,
             m4a_info_validated,
+            pcm: [0; 8192],
         })
+    }
+
+    fn configure_metadata(&mut self) -> Result<()> {
+        let stream_info = self.decoder.stream_info();
+        let capacity = self.decoder.decoded_frame_size();
+        let channels = stream_info.numChannels as usize;
+        let sample_rate = stream_info.aacSampleRate as u32;
+
+        self.m4a_info = M4AInfo {
+            otype: M4A_TYPES[stream_info.aot as usize],
+            channels: stream_info.numChannels as u8,
+            sample_rate,
+            sample_rate_index: sample_rate_index(sample_rate),
+            samples: capacity / channels,
+        };
+
+        self.buf = audio_buffer(&self.m4a_info, stream_info.sampleRate as u32)?;
+        self.m4a_info_validated = true;
+
+        Ok(())
     }
 }
 
-fn audio_buffer(m4a_info: &M4AInfo) -> Result<AudioBuffer<i16>> {
+fn audio_buffer(m4a_info: &M4AInfo, sample_rate: u32) -> Result<AudioBuffer<i16>> {
     if m4a_info.channels < 1 || m4a_info.channels > 2 {
         return unsupported_error("aac: unsupported number of channels");
     }
     let channels = map_to_channels(m4a_info.channels).expect("invalid channels");
     Ok(AudioBuffer::new(
-        AudioSpec::new(m4a_info.sample_rate, channels),
+        AudioSpec::new(sample_rate, channels),
         m4a_info.samples,
     ))
 }
@@ -111,9 +133,9 @@ impl AudioDecoder for AacDecoder {
         );
         self.decoder
             .fill(&[&adts_header, packet.buf()].concat())
-            .unwrap();
-        let mut pcm = vec![0; 8192];
-        match self.decoder.decode_frame(&mut pcm) {
+            .map_err(|e| Error::DecodeError(e.message()))?;
+
+        match self.decoder.decode_frame(&mut self.pcm) {
             Ok(_) => {}
             Err(e @ DecoderError::TRANSPORT_SYNC_ERROR) => {
                 warn!("aac: transport sync error: {}", e.message());
@@ -125,29 +147,11 @@ impl AudioDecoder for AacDecoder {
             }
         }
         if !self.m4a_info_validated {
-            let stream_info = self.decoder.stream_info();
-            let capacity = self.decoder.decoded_frame_size();
-            let channels = stream_info.numChannels as usize;
-            let sample_rate = stream_info.aacSampleRate as u32;
-
-            self.m4a_info = M4AInfo {
-                otype: M4A_TYPES[stream_info.aot as usize],
-                channels: stream_info.numChannels as u8,
-                sample_rate,
-                sample_rate_index: sample_rate_index(sample_rate),
-                samples: capacity / channels,
-            };
-            let channels = map_to_channels(self.m4a_info.channels).unwrap();
-
-            self.buf = AudioBuffer::new(
-                AudioSpec::new(stream_info.sampleRate as u32, channels),
-                self.m4a_info.samples,
-            );
-            self.m4a_info_validated = true;
+            self.configure_metadata()?;
         }
-        let capacity = self.decoder.decoded_frame_size();
 
-        let pcm = &pcm[..capacity];
+        let capacity = self.decoder.decoded_frame_size();
+        let pcm = &self.pcm[..capacity];
         self.buf.clear();
 
         self.buf.render_uninit(None);

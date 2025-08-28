@@ -36,14 +36,14 @@ pub(crate) fn construct_adts_header(
     byte3 = (byte3 << 4) | 0b1111; // IJKL
 
     let frame_length = adts_header_length + num_bytes as u16;
-    byte3 = (byte3 << 2) | get_bits(frame_length, 3..5) as u8; // MM
+    byte3 = (byte3 << 2) | get_bits_u16(frame_length, 3..5) as u8; // MM
 
     // MMMM_MMMM
-    let byte4 = get_bits(frame_length, 6..13) as u8;
+    let byte4 = get_bits_u16(frame_length, 6..13) as u8;
 
     // MMMO_OOOO
     let mut byte5 = 0b0000_0000;
-    byte5 = (byte5 << 3) | get_bits(frame_length, 14..16) as u8;
+    byte5 = (byte5 << 3) | get_bits_u16(frame_length, 14..16) as u8;
     byte5 = (byte5 << 5) | 0b11111; // OOOOO
 
     // OOOO_OOPP
@@ -54,7 +54,7 @@ pub(crate) fn construct_adts_header(
     vec![byte0, byte1, byte2, byte3, byte4, byte5, byte6]
 }
 
-fn get_bits(byte: u16, range: Range<u16>) -> u16 {
+fn get_bits_u16(byte: u16, range: Range<u16>) -> u16 {
     let shaved_left = byte << (range.start - 1);
     let moved_back = shaved_left >> (range.start - 1);
     moved_back >> (16 - range.end)
