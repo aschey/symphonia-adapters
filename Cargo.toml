@@ -9,5 +9,6 @@ edition = "2024"
 
 [workspace.dependencies]
 fdk-aac = "0.7.0"
+opusic-sys = "0.5.7"
 symphonia-core = "0.5.4"
 tracing = "0.1"

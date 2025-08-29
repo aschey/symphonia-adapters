@@ -4,3 +4,5 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+opusic-sys = { workspace = true }
+symphonia-core = { workspace = true }
