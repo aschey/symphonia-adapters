@@ -47,7 +47,7 @@ pub struct AacDecoder {
 }
 
 impl AacDecoder {
-    pub fn new(params: &AudioCodecParameters, _opts: &AudioDecoderOptions) -> Result<Self> {
+    pub fn try_new(params: &AudioCodecParameters, _opts: &AudioDecoderOptions) -> Result<Self> {
         let mut m4a_info = M4AInfo::default();
         let mut m4a_info_validated = false;
         if let Some(extra_data_buf) = &params.extra_data {
@@ -176,7 +176,7 @@ impl RegisterableAudioDecoder for AacDecoder {
     where
         Self: Sized,
     {
-        Ok(Box::new(AacDecoder::new(params, opts)?))
+        Ok(Box::new(AacDecoder::try_new(params, opts)?))
     }
 
     fn supported_codecs() -> &'static [SupportedAudioCodec] {
