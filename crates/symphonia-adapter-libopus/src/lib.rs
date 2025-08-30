@@ -35,6 +35,7 @@ impl OpusDecoder {
     where
         Self: Sized,
     {
+        println!("{params:?}");
         let num_channels = if let Some(channels) = &params.channels {
             channels.count()
         } else {
@@ -145,3 +146,4 @@ fn audio_buffer(
     let spec = AudioSpec::new(sample_rate, channels);
     AudioBuffer::new(spec, samples_per_channel)
 }
+

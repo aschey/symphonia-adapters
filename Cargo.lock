@@ -200,7 +200,7 @@ dependencies = [
 [[package]]
 name = "symphonia-core"
 version = "0.5.4"
-source = "git+https://github.com/pdeljanov/Symphonia?rev=39798f11d882b9fc959bf2d3c99eb7d6ac8b221a#39798f11d882b9fc959bf2d3c99eb7d6ac8b221a"
+source = "git+https://github.com/aschey/Symphonia?rev=327b803cb46141e4e2f31c2b8f8169a122c97ba5#327b803cb46141e4e2f31c2b8f8169a122c97ba5"
 dependencies = [
  "bitflags",
  "bytemuck",
