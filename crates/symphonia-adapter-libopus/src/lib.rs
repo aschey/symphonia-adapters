@@ -10,12 +10,13 @@ use crate::decoder::Decoder;
 mod decoder;
 
 const DEFAULT_SAMPLES_PER_CHANNEL: usize = 960;
+const MAX_SAMPLES_PER_CHANNEL: usize = 2880;
 
 pub struct OpusDecoder {
     params: CodecParameters,
     decoder: Decoder,
     buf: AudioBuffer<i16>,
-    pcm: [i16; DEFAULT_SAMPLES_PER_CHANNEL * 2],
+    pcm: [i16; MAX_SAMPLES_PER_CHANNEL * 2],
     samples_per_channel: usize,
     sample_rate: u32,
     num_channels: usize,
