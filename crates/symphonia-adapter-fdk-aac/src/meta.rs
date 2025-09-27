@@ -4,7 +4,7 @@ use symphonia_core::io::{BitReaderLtr, ReadBitsLtr};
 
 use crate::macros::validate;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct M4AInfo {
     pub(crate) otype: M4AType,
     pub(crate) sample_rate: u32,

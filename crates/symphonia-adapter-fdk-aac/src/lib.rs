@@ -73,11 +73,9 @@ fn audio_buffer(m4a_info: &M4AInfo, sample_rate: u32) -> Result<AudioBuffer<i16>
 impl symphonia_core::codecs::Decoder for AacDecoder {
     fn try_new(params: &CodecParameters, _opts: &DecoderOptions) -> Result<Self> {
         let mut m4a_info = M4AInfo::default();
-        let mut m4a_info_validated = false;
         if let Some(extra_data_buf) = &params.extra_data {
             validate!(extra_data_buf.len() >= 2);
             m4a_info.read(extra_data_buf)?;
-            m4a_info_validated = true;
         } else {
             m4a_info.otype = M4AType::Lc;
             m4a_info.sample_rate = params.sample_rate.unwrap_or_default();
@@ -97,7 +95,9 @@ impl symphonia_core::codecs::Decoder for AacDecoder {
             codec_params: params.clone(),
             buf,
             m4a_info,
-            m4a_info_validated,
+            // We should always prefer the m4a info from the decoder even if we were able to parse
+            // the extra data from the header since it could be more accurate
+            m4a_info_validated: false,
             pcm: [0; 8192],
         })
     }
