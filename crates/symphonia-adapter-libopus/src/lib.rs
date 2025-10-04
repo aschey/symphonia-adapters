@@ -42,7 +42,7 @@ impl symphonia_core::codecs::Decoder for OpusDecoder {
         };
 
         if !(1..=2).contains(&num_channels) {
-            return unsupported_error("aac: unsupported number of channels");
+            return unsupported_error("opus: unsupported number of channels");
         }
 
         Ok(Self {
