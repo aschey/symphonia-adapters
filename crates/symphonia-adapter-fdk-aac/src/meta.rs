@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+
 use symphonia_core::audio::{Channels, Layout};
 use symphonia_core::errors::Result;
 use symphonia_core::io::{BitReaderLtr, ReadBitsLtr};
@@ -14,7 +16,7 @@ pub(crate) struct M4AInfo {
 }
 
 impl M4AInfo {
-    fn read_object_type<B: ReadBitsLtr>(bs: &mut B) -> symphonia_core::errors::Result<M4AType> {
+    fn read_object_type<B: ReadBitsLtr>(bs: &mut B) -> Result<M4AType> {
         let otypeidx = match bs.read_bits_leq32(5)? {
             idx if idx < 31 => idx as usize,
             31 => (bs.read_bits_leq32(6)? + 32) as usize,
@@ -28,7 +30,7 @@ impl M4AInfo {
         }
     }
 
-    fn read_sampling_frequency<B: ReadBitsLtr>(bs: &mut B) -> symphonia_core::errors::Result<u32> {
+    fn read_sampling_frequency<B: ReadBitsLtr>(bs: &mut B) -> Result<u32> {
         match bs.read_bits_leq32(4)? {
             idx if idx < 15 => Ok(AAC_SAMPLE_RATES[idx as usize]),
             _ => {
@@ -38,7 +40,7 @@ impl M4AInfo {
         }
     }
 
-    fn read_channel_config<B: ReadBitsLtr>(bs: &mut B) -> symphonia_core::errors::Result<usize> {
+    fn read_channel_config<B: ReadBitsLtr>(bs: &mut B) -> Result<usize> {
         let chidx = bs.read_bits_leq32(4)? as usize;
         if chidx < AAC_CHANNELS.len() {
             Ok(AAC_CHANNELS[chidx])
@@ -76,7 +78,7 @@ impl M4AInfo {
 }
 
 impl std::fmt::Display for M4AInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "MPEG 4 Audio {}, {} Hz, {} channels, {} samples per frame",
@@ -176,8 +178,8 @@ pub const M4A_TYPES: &[M4AType] = &[
     M4AType::SMRMain,
 ];
 
-impl std::fmt::Display for M4AType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for M4AType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", M4A_TYPE_NAMES[*self as usize])
     }
 }

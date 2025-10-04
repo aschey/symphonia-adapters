@@ -1,8 +1,11 @@
 use symphonia_core::audio::{
     AsAudioBufferRef, AudioBuffer, AudioBufferRef, Channels, Layout, Signal, SignalSpec,
 };
-use symphonia_core::codecs::{CODEC_TYPE_OPUS, CodecDescriptor, CodecParameters, FinalizeResult};
+use symphonia_core::codecs::{
+    self, CODEC_TYPE_OPUS, CodecDescriptor, CodecParameters, DecoderOptions, FinalizeResult,
+};
 use symphonia_core::errors::{Result, unsupported_error};
+use symphonia_core::formats::Packet;
 use symphonia_core::support_codec;
 
 use crate::decoder::Decoder;
@@ -22,11 +25,8 @@ pub struct OpusDecoder {
     num_channels: usize,
 }
 
-impl symphonia_core::codecs::Decoder for OpusDecoder {
-    fn try_new(
-        params: &symphonia_core::codecs::CodecParameters,
-        _opts: &symphonia_core::codecs::DecoderOptions,
-    ) -> symphonia_core::errors::Result<Self>
+impl codecs::Decoder for OpusDecoder {
+    fn try_new(params: &CodecParameters, _opts: &DecoderOptions) -> Result<Self>
     where
         Self: Sized,
     {
@@ -60,7 +60,7 @@ impl symphonia_core::codecs::Decoder for OpusDecoder {
         })
     }
 
-    fn supported_codecs() -> &'static [symphonia_core::codecs::CodecDescriptor]
+    fn supported_codecs() -> &'static [CodecDescriptor]
     where
         Self: Sized,
     {
@@ -69,11 +69,11 @@ impl symphonia_core::codecs::Decoder for OpusDecoder {
 
     fn reset(&mut self) {}
 
-    fn codec_params(&self) -> &symphonia_core::codecs::CodecParameters {
+    fn codec_params(&self) -> &CodecParameters {
         &self.params
     }
 
-    fn decode(&mut self, packet: &symphonia_core::formats::Packet) -> Result<AudioBufferRef<'_>> {
+    fn decode(&mut self, packet: &Packet) -> Result<AudioBufferRef<'_>> {
         let samples_per_channel = self.decoder.decode(&packet.data, &mut self.pcm)?;
 
         if samples_per_channel != self.samples_per_channel {
@@ -106,7 +106,7 @@ impl symphonia_core::codecs::Decoder for OpusDecoder {
         Ok(self.buf.as_audio_buffer_ref())
     }
 
-    fn finalize(&mut self) -> symphonia_core::codecs::FinalizeResult {
+    fn finalize(&mut self) -> FinalizeResult {
         FinalizeResult::default()
     }
 
