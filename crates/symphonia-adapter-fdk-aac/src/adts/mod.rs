@@ -2,6 +2,9 @@ use std::ops::Range;
 
 use crate::M4AType;
 
+// largely copied from https://github.com/probablykasper/redlux/blob/ad2022affa3d50b9f95c16b9450837d21ca32c55/src/adts.rs
+// See LICENSE in this folder
+
 pub(crate) fn construct_adts_header(
     object_type: M4AType,
     sample_freq_index: u8,
