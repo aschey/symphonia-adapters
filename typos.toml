@@ -1,2 +1,2 @@
 [default]
-extend-ignore-re = ["als"]
+extend-ignore-re = ["Als", "ALS"]
