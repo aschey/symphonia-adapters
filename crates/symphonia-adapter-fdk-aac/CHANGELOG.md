@@ -7,4 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-fdk-aac-v0.1.0..symphonia-adapter-fdk-aac-v0.1.1) - 2025-10-05
+
+### Documentation
+
+- Add badges ([#3](https://github.com/aschey/symphonia-adapters/issues/3)) - ([0472c3a](https://github.com/aschey/symphonia-adapters/commit/0472c3a0571fcac8eccccfc659a0e1d605854bf4))
+
+
 ## [0.1.0](https://github.com/aschey/symphonia-adapters/releases/tag/symphonia-adapter-fdk-aac-v0.1.0) - 2025-10-05
