@@ -16,7 +16,7 @@ keywords = ["audio", "codec", "symphonia", "aac", "opus"]
 fdk-aac = "0.8.0"
 opusic-sys = "0.5.7"
 symphonia-core = "0.5.4"
-tracing = "0.1"
+log = "0.4"
 
 # test dependencies
 symphonia = "0.5.4"

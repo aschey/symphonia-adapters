@@ -7,6 +7,7 @@ mod adts;
 mod meta;
 
 use fdk_aac::dec::{Decoder, DecoderError, Transport};
+use log::warn;
 use symphonia_core::audio::{AsAudioBufferRef, AudioBuffer, AudioBufferRef, Signal, SignalSpec};
 use symphonia_core::codecs::{
     CODEC_TYPE_AAC, CodecDescriptor, CodecParameters, DecoderOptions, FinalizeResult,
@@ -14,7 +15,6 @@ use symphonia_core::codecs::{
 use symphonia_core::errors::{Error, unsupported_error};
 use symphonia_core::formats::Packet;
 use symphonia_core::support_codec;
-use tracing::warn;
 
 use crate::adts::construct_adts_header;
 use crate::macros::validate;
@@ -26,7 +26,7 @@ mod macros {
     macro_rules! validate {
         ($a:expr) => {
             if !$a {
-                tracing::error!("check failed at {}:{}", file!(), line!());
+                log::error!("check failed at {}:{}", file!(), line!());
                 return symphonia_core::errors::decode_error("aac: invalid data");
             }
         };
