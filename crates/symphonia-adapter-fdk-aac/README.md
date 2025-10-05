@@ -25,7 +25,8 @@ codec_registry.register_all::<AacDecoder>();
 
 ## License
 
-Original code in this crate is licensed under the MIT or Apache-2.0 licenses.
+Original code in this crate is licensed under either the MIT or Apache-2.0
+license, at your choice.
 
 FDK AAC is licensed under
 [a bespoke license](https://fedoraproject.org/wiki/Licensing/FDK-AAC).

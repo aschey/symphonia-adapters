@@ -22,7 +22,8 @@ codec_registry.register_all::<OpusDecoder>();
 
 ## License
 
-This crate is licensed under the MIT or Apache 2.0 licenses.
+This crate is licensed under either the MIT and Apache 2.0 license, at your
+choice.
 
 libopus and opusic-sys are licensed under the
 [opus license](https://opus-codec.org/license/).
