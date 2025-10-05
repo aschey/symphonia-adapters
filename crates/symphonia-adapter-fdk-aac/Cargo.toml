@@ -16,3 +16,8 @@ keywords.workspace = true
 symphonia-core = { workspace = true }
 fdk-aac = { workspace = true }
 log = { workspace = true }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
