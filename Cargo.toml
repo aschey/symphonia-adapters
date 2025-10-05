@@ -13,10 +13,10 @@ categories = ["multimedia", "multimedia::audio", "multimedia::encoding"]
 keywords = ["audio", "codec", "symphonia", "aac", "opus"]
 
 [workspace.dependencies]
-fdk-aac = "0.8.0"
-opusic-sys = "0.5.7"
+fdk-aac = "0.8"
+opusic-sys = "0.5"
 symphonia-core = "0.5.4"
-log = "0.4"
+log = "0.4.28"
 
 # test dependencies
 symphonia = "0.5.4"
