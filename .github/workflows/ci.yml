@@ -54,7 +54,6 @@ jobs:
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@v2
-      - name: Install dependencies
       - name: Build
         run: cargo build --release
 
