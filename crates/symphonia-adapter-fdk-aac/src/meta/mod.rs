@@ -7,7 +7,7 @@ use symphonia_core::io::{BitReaderLtr, ReadBitsLtr};
 use crate::macros::validate;
 
 // Largely copied from https://github.com/pdeljanov/Symphonia/blob/505458eb1e479d84df0a65f95ab3d536d6350d29/symphonia-codec-aac/src/aac/mod.rs
-// See LICENSE in this folder
+// As Symphonia is licensed under MPL-2.0, this file is as well. See LICENSE in this folder
 
 #[derive(Default, Debug)]
 pub(crate) struct M4AInfo {
