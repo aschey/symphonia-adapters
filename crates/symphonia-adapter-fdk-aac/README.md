@@ -1,5 +1,13 @@
 # symphonia-adapter-fdk-aac
 
+[![crates.io](https://img.shields.io/crates/v/symphonia-adapter-fdk-aac?logo=rust)](https://crates.io/crates/symphonia-adapter-fdk-aac)
+[![docs.rs](https://img.shields.io/docsrs/symphonia-adapter-fdk-aac?logo=rust)](https://docs.rs/symphonia-adapter-fdk-aac)
+![license](https://img.shields.io/badge/License-MIT%20or%20Apache%202-green.svg)
+[![CI](https://github.com/aschey/symphonia-adapters/actions/workflows/ci.yml/badge.svg)](https://github.com/aschey/symphonia-adapters/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/aschey/symphonia-adapters/branch/main/graph/badge.svg?token=pF3FhV8OUt)](https://app.codecov.io/gh/aschey/symphonia-adapters)
+![GitHub repo size](https://img.shields.io/github/repo-size/aschey/symphonia-adapters)
+![Lines of Code](https://aschey.tech/tokei/github/aschey/symphonia-adapters)
+
 Adapter for using [Fraunhofer FDK AAC](https://github.com/haileys/fdk-aac-rs)
 with Symphonia. FDK AAC is a robust encoder/decoder for the AAC format.
 Symphonia does have native AAC support, but it doesn't support the full spec.
