@@ -34,6 +34,7 @@ mod macros {
     pub(crate) use validate;
 }
 
+/// Symphonia-compatible wrapper for the FDK AAC decoder.
 pub struct AacDecoder {
     decoder: Decoder,
     buf: AudioBuffer<i16>,

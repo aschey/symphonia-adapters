@@ -1,5 +1,5 @@
 [workspace]
-members = ["./crates/*"]
+members = ["./crates/*", "tests"]
 resolver = "3"
 
 [workspace.package]
@@ -17,6 +17,9 @@ fdk-aac = "0.8.0"
 opusic-sys = "0.5.7"
 symphonia-core = "0.5.4"
 tracing = "0.1"
+
+# test dependencies
+symphonia = "0.5.4"
 
 [workspace.lints.rustdoc]
 broken_intra_doc_links = "deny"

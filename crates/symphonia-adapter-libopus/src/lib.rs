@@ -20,6 +20,7 @@ mod decoder;
 const DEFAULT_SAMPLES_PER_CHANNEL: usize = 960;
 const MAX_SAMPLES_PER_CHANNEL: usize = 2880;
 
+/// Symphonia-compatible wrapper for the libopus decoder.
 pub struct OpusDecoder {
     params: CodecParameters,
     decoder: Decoder,

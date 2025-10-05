@@ -1,0 +1,10 @@
+[package]
+name = "tests"
+license = "MIT OR Apache-2.0"
+publish = false
+edition.workspace = true
+
+[dependencies]
+symphonia = { workspace = true, features = ["isomp4"] }
+symphonia-adapter-fdk-aac = { path = "../crates/symphonia-adapter-fdk-aac" }
+symphonia-adapter-libopus = { path = "../crates/symphonia-adapter-libopus" }
