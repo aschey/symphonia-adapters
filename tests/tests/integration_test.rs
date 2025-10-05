@@ -10,12 +10,12 @@ use symphonia_adapter_libopus::OpusDecoder;
 
 #[test]
 fn test_decode_aac() {
-    test_decode(File::open("./assets/music.m4a").unwrap());
+    test_decode(File::open("../assets/music.m4a").unwrap());
 }
 
 #[test]
 fn test_decode_opus() {
-    test_decode(File::open("./assets/sample.opus").unwrap());
+    test_decode(File::open("../assets/sample.opus").unwrap());
 }
 
 fn test_decode(file: File) {

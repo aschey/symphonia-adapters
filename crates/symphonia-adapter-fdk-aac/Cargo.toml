@@ -2,6 +2,7 @@
 name = "symphonia-adapter-fdk-aac"
 version = "0.1.0"
 readme = "README.md"
+description = "Adapter to use FDK AAC with Symphonia"
 license = "(MIT OR Apache-2.0) AND MPL-2.0"
 edition.workspace = true
 rust-version.workspace = true

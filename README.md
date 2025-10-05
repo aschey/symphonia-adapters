@@ -1,6 +1,7 @@
 # Symphonia Adapters
 
-This repo contains adapters for external decoders to be used with Symphonia.
+This repo contains adapters for external AAC and Opus decoders to be used with
+Symphonia.
 
 More info can be found in the docs for each crate:
 
