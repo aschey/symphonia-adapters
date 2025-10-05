@@ -1,3 +1,8 @@
+#![warn(missing_docs)]
+#![forbid(clippy::unwrap_used)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc = include_str!("../README.md")]
+
 use symphonia_core::audio::{
     AsAudioBufferRef, AudioBuffer, AudioBufferRef, Channels, Layout, Signal, SignalSpec,
 };

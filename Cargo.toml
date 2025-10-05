@@ -1,12 +1,38 @@
 [workspace]
-members = ["./crates/*", "crates/symphonia-adapter-libopus"]
+members = ["./crates/*"]
 resolver = "3"
 
 [workspace.package]
 edition = "2024"
+rust-version = "1.85"
+authors = ["Austin Schey <aschey13@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/aschey/symphonia-adapters"
+homepage = "https://github.com/aschey/symphonia-adapters"
+include = ["/src", "/examples", "/tests", "LICENSE-MIT", "LICENSE-APACHE"]
+categories = ["multimedia", "multimedia::audio", "multimedia::encoding"]
+keywords = ["audio", "codec", "symphonia", "aac", "opus"]
 
 [workspace.dependencies]
 fdk-aac = "0.8.0"
 opusic-sys = "0.5.7"
 symphonia-core = "0.5.4"
 tracing = "0.1"
+
+[workspace.lints.rustdoc]
+broken_intra_doc_links = "deny"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+allow_attributes = "deny"
+doc_markdown = "warn"
+default_trait_access = "warn"
+ignored_unit_patterns = "warn"
+semicolon_if_nothing_returned = "warn"
+missing_fields_in_debug = "warn"
+use_self = "warn"
+impl_trait_in_params = "warn"
+missing_panics_doc = "warn"
+explicit_iter_loop = "warn"
+explicit_into_iter_loop = "warn"
+redundant_closure_for_method_calls = "warn"

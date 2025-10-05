@@ -1,7 +1,16 @@
 [package]
 name = "symphonia-adapter-fdk-aac"
 version = "0.1.0"
-edition = "2024"
+readme = "README.md"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+include.workspace = true
+categories.workspace = true
+keywords.workspace = true
 
 [dependencies]
 symphonia-core = { workspace = true }

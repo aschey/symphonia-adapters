@@ -1,3 +1,8 @@
+#![warn(missing_docs)]
+#![forbid(clippy::unwrap_used)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc = include_str!("../README.md")]
+
 mod adts;
 mod meta;
 
