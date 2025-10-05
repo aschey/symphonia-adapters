@@ -18,11 +18,11 @@ details on how to configure linking libopus.
 ## Usage
 
 ```rust
-use symphonia_core::codecs::CodecRegistry;
+use symphonia_core::codecs::registry::CodecRegistry;
 use symphonia_adapter_libopus::OpusDecoder;
 
 let mut codec_registry = CodecRegistry::new();
-codec_registry.register_all::<OpusDecoder>();
+codec_registry.register_audio_decoder::<OpusDecoder>();
 // register other codecs
 
 // use codec_registry created above instead of symphonia::default::get_codecs();

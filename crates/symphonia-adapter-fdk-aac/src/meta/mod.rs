@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use symphonia_core::audio::{Channels, Layout};
+use symphonia_core::audio::{Channels, layouts};
 use symphonia_core::errors::Result;
 use symphonia_core::io::{BitReaderLtr, ReadBitsLtr};
 
@@ -80,7 +80,7 @@ impl M4AInfo {
     }
 }
 
-impl std::fmt::Display for M4AInfo {
+impl Display for M4AInfo {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -250,8 +250,13 @@ const AAC_CHANNELS: [usize; 8] = [0, 1, 2, 3, 4, 5, 6, 8];
 
 pub(crate) fn map_to_channels(num_channels: u8) -> Option<Channels> {
     let channels = match num_channels {
-        1 => Layout::Mono.into_channels(),
-        2 => Layout::Stereo.into_channels(),
+        1 => layouts::CHANNEL_LAYOUT_MONO,
+        2 => layouts::CHANNEL_LAYOUT_STEREO,
+        3 => layouts::CHANNEL_LAYOUT_AAC_3P0,
+        4 => layouts::CHANNEL_LAYOUT_AAC_4P0,
+        5 => layouts::CHANNEL_LAYOUT_AAC_5P0,
+        6 => layouts::CHANNEL_LAYOUT_AAC_5P1,
+        8 => layouts::CHANNEL_LAYOUT_AAC_7P1,
         _ => return None,
     };
 

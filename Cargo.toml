@@ -15,11 +15,11 @@ keywords = ["audio", "codec", "symphonia", "aac", "opus"]
 [workspace.dependencies]
 fdk-aac = "0.8"
 opusic-sys = "0.5"
-symphonia-core = "0.5.4"
+symphonia-core = { git = "https://github.com/pdeljanov/Symphonia", rev = "c7e676ca9cecf21751dafe54af899aeac34aba07" }
 log = "0.4.28"
 
 # test dependencies
-symphonia = "0.5.4"
+symphonia = { git = "https://github.com/pdeljanov/Symphonia", rev = "c7e676ca9cecf21751dafe54af899aeac34aba07" }
 
 [workspace.lints.rustdoc]
 broken_intra_doc_links = "deny"
