@@ -34,6 +34,8 @@ mod macros {
     pub(crate) use validate;
 }
 
+const MAX_SAMPLES: usize = 8192;
+
 /// Symphonia-compatible wrapper for the FDK AAC decoder.
 pub struct AacDecoder {
     decoder: Decoder,
@@ -41,7 +43,7 @@ pub struct AacDecoder {
     codec_params: CodecParameters,
     m4a_info: M4AInfo,
     m4a_info_validated: bool,
-    pcm: [i16; 8192],
+    pcm: [i16; MAX_SAMPLES],
 }
 
 impl AacDecoder {
@@ -104,7 +106,7 @@ impl symphonia_core::codecs::Decoder for AacDecoder {
             // We should always prefer the m4a info from the decoder even if we were able to parse
             // the extra data from the header since it could be more accurate
             m4a_info_validated: false,
-            pcm: [0; 8192],
+            pcm: [0; _],
         })
     }
 
@@ -166,6 +168,9 @@ impl symphonia_core::codecs::Decoder for AacDecoder {
             }
             _ => {}
         }
+
+        self.buf
+            .trim(packet.trim_start() as usize, packet.trim_end() as usize);
         Ok(self.buf.as_audio_buffer_ref())
     }
 

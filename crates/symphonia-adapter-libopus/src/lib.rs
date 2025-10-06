@@ -109,6 +109,9 @@ impl codecs::Decoder for OpusDecoder {
             }
             _ => {}
         }
+
+        self.buf
+            .trim(packet.trim_start() as usize, packet.trim_end() as usize);
         Ok(self.buf.as_audio_buffer_ref())
     }
 
