@@ -1,6 +1,6 @@
 [package]
 name = "symphonia-adapter-fdk-aac"
-version = "0.1.1"
+version = "0.1.2"
 readme = "README.md"
 description = "Adapter to use FDK AAC with Symphonia"
 license = "(MIT OR Apache-2.0) AND MPL-2.0"
