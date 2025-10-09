@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.1.1..symphonia-adapter-libopus-v0.1.2) - 2025-10-06
+
+### Features
+
+- Use gapless info from demuxer ([#5](https://github.com/aschey/symphonia-adapters/issues/5)) - ([5837fe7](https://github.com/aschey/symphonia-adapters/commit/5837fe7c5e54a1f2d660f840f3e7517919eee801))
+
+
 ## [0.1.1](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.1.0..symphonia-adapter-libopus-v0.1.1) - 2025-10-05
 
 ### Documentation
