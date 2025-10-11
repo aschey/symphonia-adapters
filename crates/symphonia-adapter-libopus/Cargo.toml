@@ -16,6 +16,10 @@ keywords.workspace = true
 opusic-sys = { workspace = true }
 symphonia-core = { workspace = true }
 
+[features]
+default = ["bundled"]
+bundled = ["opusic-sys/bundled"]
+
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]

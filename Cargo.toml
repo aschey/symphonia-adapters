@@ -14,7 +14,7 @@ keywords = ["audio", "codec", "symphonia", "aac", "opus"]
 
 [workspace.dependencies]
 fdk-aac = "0.8"
-opusic-sys = "0.5.8"
+opusic-sys = { version = "0.5.8", default-features = false }
 symphonia-core = "0.5.4"
 log = "0.4.28"
 
