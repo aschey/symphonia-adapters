@@ -28,6 +28,12 @@ codec_registry.register_audio_decoder::<OpusDecoder>();
 // use codec_registry created above instead of symphonia::default::get_codecs();
 ```
 
+## Linking & Bundling
+
+By default `libopus` will be compiled and bundled into the resulting binary.
+
+To disable this, set `default-features = false`. Or to explicitly enable bundling add feature `bundled`.
+
 ## License
 
 This crate is licensed under either the MIT and Apache 2.0 license, at your

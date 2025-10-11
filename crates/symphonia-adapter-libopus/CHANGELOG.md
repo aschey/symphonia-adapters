@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.1.2..symphonia-adapter-libopus-v0.2.0) - 2025-10-11
+
+### Features
+
+- Update `opusic-sys` and expose bundling options ([#8](https://github.com/aschey/symphonia-adapters/issues/8)) - ([4725f48](https://github.com/aschey/symphonia-adapters/commit/4725f4896e795d9ec414b6e8e45daf056da83749))
+
+
 ## [0.1.2](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.1.1..symphonia-adapter-libopus-v0.1.2) - 2025-10-06
 
 ### Features
