@@ -75,7 +75,9 @@ impl AudioDecoder for OpusDecoder {
             .info
     }
 
-    fn reset(&mut self) {}
+    fn reset(&mut self) {
+        self.decoder.reset()
+    }
 
     fn codec_params(&self) -> &AudioCodecParameters {
         &self.params

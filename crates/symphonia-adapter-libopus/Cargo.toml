@@ -15,6 +15,7 @@ keywords.workspace = true
 [dependencies]
 opusic-sys = { workspace = true }
 symphonia-core = { workspace = true }
+log = { workspace = true }
 
 [features]
 default = ["bundled"]
