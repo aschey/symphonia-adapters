@@ -73,7 +73,9 @@ impl codecs::Decoder for OpusDecoder {
         &[support_codec!(CODEC_TYPE_OPUS, "opus", "Opus")]
     }
 
-    fn reset(&mut self) {}
+    fn reset(&mut self) {
+        self.decoder.reset()
+    }
 
     fn codec_params(&self) -> &CodecParameters {
         &self.params

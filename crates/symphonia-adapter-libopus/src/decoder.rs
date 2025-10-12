@@ -1,5 +1,6 @@
 use std::ffi::c_int;
 
+use log::{error, warn};
 use symphonia_core::errors::{Error, Result};
 
 pub(crate) struct Decoder {
@@ -25,6 +26,7 @@ impl Decoder {
             opusic_sys::opus_decoder_create(sample_rate as i32, channels as c_int, &mut error)
         };
         if error != opusic_sys::OPUS_OK {
+            error!("decoder failed to create with error code {error}");
             return Err(Error::DecodeError("opus: error creating decoder"));
         }
         Ok(Self { ptr, channels })
@@ -46,9 +48,19 @@ impl Decoder {
             )
         };
         if len < 0 {
+            warn!("decode failed with error code {len}");
             return Err(Error::DecodeError("opus: decode failed"));
         }
         Ok(len as usize)
+    }
+
+    pub(crate) fn reset(&mut self) {
+        let result =
+            unsafe { opusic_sys::opus_decoder_ctl(self.ptr, opusic_sys::OPUS_RESET_STATE) };
+
+        if result != opusic_sys::OPUS_OK {
+            warn!("reset failed with error code {result}");
+        }
     }
 }
 
