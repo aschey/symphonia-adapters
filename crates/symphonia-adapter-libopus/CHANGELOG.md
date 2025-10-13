@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.2.2..symphonia-adapter-libopus-v0.2.3) - 2025-10-13
+
+### Features
+
+- Add missing debug/clone implementations ([#14](https://github.com/aschey/symphonia-adapters/issues/14)) - ([9b0beb1](https://github.com/aschey/symphonia-adapters/commit/9b0beb1be02ada4e99e26810a191ea3790fa0a99))
+
+
 ## [0.2.2](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.2.1..symphonia-adapter-libopus-v0.2.2) - 2025-10-13
 
 ### Features
