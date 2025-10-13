@@ -11,6 +11,7 @@ use symphonia_core::codecs::{
 };
 use symphonia_core::errors::{Result, unsupported_error};
 use symphonia_core::formats::Packet;
+use symphonia_core::io::{BufReader, ReadBytes};
 use symphonia_core::support_codec;
 
 use crate::decoder::Decoder;
@@ -29,6 +30,29 @@ pub struct OpusDecoder {
     samples_per_channel: usize,
     sample_rate: u32,
     num_channels: usize,
+    pre_skip: usize,
+}
+
+// This should probably be handled in the Ogg demuxer, but we'll include it here for now.
+fn parse_pre_skip(buf: &[u8]) -> Result<usize> {
+    // See https://wiki.xiph.org/OggOpus
+
+    let mut reader = BufReader::new(buf);
+
+    // Header - "OpusHead"
+    let mut header = [0; 8];
+    reader.read_buf_exact(&mut header)?;
+
+    // Version - 1 is the only valid version currently
+    reader.read_byte()?;
+
+    // Number of channels (same as what we get from the CodecParameters)
+    reader.read_byte()?;
+
+    // Pre-skip - number of samples (at 48 kHz) to discard from the start of the stream
+    let pre_skip = reader.read_u16()?;
+
+    Ok(pre_skip as usize)
 }
 
 impl codecs::Decoder for OpusDecoder {
@@ -51,6 +75,12 @@ impl codecs::Decoder for OpusDecoder {
             return unsupported_error("opus: unsupported number of channels");
         }
 
+        let pre_skip = if let Some(extra_data) = &params.extra_data {
+            parse_pre_skip(extra_data).unwrap_or_default()
+        } else {
+            0
+        };
+
         Ok(Self {
             params: params.to_owned(),
             decoder: Decoder::new(sample_rate, num_channels as u32)?,
@@ -63,6 +93,7 @@ impl codecs::Decoder for OpusDecoder {
             samples_per_channel: DEFAULT_SAMPLES_PER_CHANNEL,
             sample_rate,
             num_channels,
+            pre_skip,
         })
     }
 
@@ -112,8 +143,12 @@ impl codecs::Decoder for OpusDecoder {
             _ => {}
         }
 
-        self.buf
-            .trim(packet.trim_start() as usize, packet.trim_end() as usize);
+        self.buf.trim(
+            packet.trim_start() as usize + self.pre_skip,
+            packet.trim_end() as usize,
+        );
+        // Pre-skip should only be used for the first packet, after that it should always be 0.
+        self.pre_skip = 0;
         Ok(self.buf.as_audio_buffer_ref())
     }
 
