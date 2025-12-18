@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.2.3..symphonia-adapter-libopus-v0.2.4) - 2025-12-18
+
+### Bug Fixes
+
+- Convert pre_skip to target sample_rate. ([#22](https://github.com/aschey/symphonia-adapters/issues/22)) - ([a68e560](https://github.com/aschey/symphonia-adapters/commit/a68e5600f8259f9df10933e79c0731136a7dbf91))
+
+
 ## [0.2.3](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.2.2..symphonia-adapter-libopus-v0.2.3) - 2025-10-13
 
 ### Features
