@@ -161,7 +161,7 @@ impl codecs::Decoder for OpusDecoder {
         }
 
         self.buf.trim(
-            packet.trim_start() as usize + self.pre_skip,
+            packet.trim_start() as usize + (self.pre_skip * self.sample_rate as usize) / 48000,
             packet.trim_end() as usize,
         );
         // Pre-skip should only be used for the first packet, after that it should always be 0.
