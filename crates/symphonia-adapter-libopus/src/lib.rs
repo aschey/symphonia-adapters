@@ -22,6 +22,7 @@ mod decoder;
 
 const DEFAULT_SAMPLES_PER_CHANNEL: usize = 960;
 const MAX_SAMPLES_PER_CHANNEL: usize = 2880;
+const DEFAULT_SAMPLE_RATE: usize = 48000;
 
 /// Symphonia-compatible wrapper for the libopus decoder.
 pub struct OpusDecoder {
@@ -161,7 +162,8 @@ impl codecs::Decoder for OpusDecoder {
         }
 
         self.buf.trim(
-            packet.trim_start() as usize + (self.pre_skip * self.sample_rate as usize) / 48000,
+            packet.trim_start() as usize
+                + (self.pre_skip * self.sample_rate as usize) / DEFAULT_SAMPLE_RATE,
             packet.trim_end() as usize,
         );
         // Pre-skip should only be used for the first packet, after that it should always be 0.
