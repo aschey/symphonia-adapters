@@ -92,7 +92,7 @@ impl Display for M4AInfo {
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Default, Copy, Debug, PartialEq, Eq)]
-pub enum M4AType {
+pub(crate) enum M4AType {
     #[default]
     None,
     Main,
@@ -136,7 +136,7 @@ pub enum M4AType {
     Unknown,
 }
 
-pub const M4A_TYPES: &[M4AType] = &[
+pub(crate) const M4A_TYPES: &[M4AType] = &[
     M4AType::None,
     M4AType::Main,
     M4AType::Lc,
@@ -186,8 +186,9 @@ impl Display for M4AType {
         write!(f, "{}", M4A_TYPE_NAMES[*self as usize])
     }
 }
+
 // https://en.wikipedia.org/wiki/MPEG-4_Part_3#MPEG-4_Audio_Object_Types
-pub const M4A_TYPE_NAMES: &[&str] = &[
+pub(crate) const M4A_TYPE_NAMES: &[&str] = &[
     "None",
     "AAC Main",
     "AAC LC",

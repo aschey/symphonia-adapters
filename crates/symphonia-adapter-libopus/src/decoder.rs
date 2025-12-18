@@ -3,6 +3,7 @@ use std::ffi::c_int;
 use log::{error, warn};
 use symphonia_core::errors::{Error, Result};
 
+#[derive(Debug)]
 pub(crate) struct Decoder {
     ptr: *mut opusic_sys::OpusDecoder,
     channels: u32,

@@ -1,7 +1,9 @@
-#![warn(missing_docs)]
+#![warn(missing_docs, missing_debug_implementations)]
 #![forbid(clippy::unwrap_used)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
+
+use std::fmt;
 
 use symphonia_core::audio::{
     AsGenericAudioBufferRef, AudioBuffer, AudioMut, AudioSpec, Channels, GenericAudioBufferRef,
@@ -33,6 +35,20 @@ pub struct OpusDecoder {
     samples_per_channel: usize,
     sample_rate: u32,
     num_channels: usize,
+}
+
+impl fmt::Debug for OpusDecoder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("OpusDecoder")
+            .field("params", &self.params)
+            .field("decoder", &self.decoder)
+            .field("buf", &"<buf>")
+            .field("pcm", &self.pcm)
+            .field("samples_per_channel", &self.samples_per_channel)
+            .field("sample_rate", &self.sample_rate)
+            .field("num_channels", &self.num_channels)
+            .finish()
+    }
 }
 
 impl OpusDecoder {

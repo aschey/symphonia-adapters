@@ -1,10 +1,12 @@
-#![warn(missing_docs)]
+#![warn(missing_docs, missing_debug_implementations)]
 #![forbid(clippy::unwrap_used)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 
 mod adts;
 mod meta;
+
+use std::fmt;
 
 use fdk_aac::dec::{Decoder, DecoderError, Transport};
 use log::warn;
@@ -52,6 +54,19 @@ pub struct AacDecoder {
     m4a_info: M4AInfo,
     m4a_info_validated: bool,
     pcm: [i16; MAX_SAMPLES],
+}
+
+impl fmt::Debug for AacDecoder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AacDecoder")
+            .field("decoder", &self.decoder)
+            .field("buf", &"<buf>")
+            .field("codec_params", &self.codec_params)
+            .field("m4a_info", &self.m4a_info)
+            .field("m4a_info_validated", &self.m4a_info_validated)
+            .field("pcm", &self.pcm)
+            .finish()
+    }
 }
 
 impl AacDecoder {
