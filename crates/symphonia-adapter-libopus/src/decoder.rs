@@ -3,6 +3,45 @@ use std::ffi::c_int;
 use log::{error, warn};
 use symphonia_core::errors::{Error, Result};
 
+pub enum ErrorCode {
+    BadArg,
+    BufferTooSmall,
+    InternalError,
+    InvalidPacket,
+    Unimplemented,
+    InvalidState,
+    AllocFail,
+}
+impl ErrorCode {
+    fn from_c_int(code: c_int) -> Option<Self> {
+        use ErrorCode::*;
+        match code {
+            opusic_sys::OPUS_OK => None,
+            opusic_sys::OPUS_BAD_ARG => Some(BadArg),
+            opusic_sys::OPUS_BUFFER_TOO_SMALL => Some(BufferTooSmall),
+            opusic_sys::OPUS_INTERNAL_ERROR => Some(InternalError),
+            opusic_sys::OPUS_INVALID_PACKET => Some(InvalidPacket),
+            opusic_sys::OPUS_UNIMPLEMENTED => Some(Unimplemented),
+            opusic_sys::OPUS_INVALID_STATE => Some(InvalidState),
+            opusic_sys::OPUS_ALLOC_FAIL => Some(AllocFail),
+            _ => None,
+        }
+    }
+
+    const fn as_str(&self) -> &str {
+        use ErrorCode::*;
+        match self {
+            BadArg => "One or more invalid/out of range arguments.",
+            BufferTooSmall => "The mode struct passed is invalid.",
+            InternalError => "An internal error was detected.",
+            InvalidPacket => "The compressed data passed is corrupted.",
+            Unimplemented => "Invalid/unsupported request number.",
+            InvalidState => "An encoder or decoder structure is invalid or already freed.",
+            AllocFail => "Memory allocation has failed. ",
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct Decoder {
     ptr: *mut opusic_sys::OpusDecoder,
@@ -26,9 +65,10 @@ impl Decoder {
         let ptr = unsafe {
             opusic_sys::opus_decoder_create(sample_rate as i32, channels as c_int, &mut error)
         };
-        if error != opusic_sys::OPUS_OK {
-            error!("decoder failed to create with error code {error}");
-            return Err(Error::DecodeError("opus: error creating decoder"));
+        if let Some(err) = ErrorCode::from_c_int(error) {
+            let errstr = err.as_str();
+            error!("decoder failed to create with error: {errstr}");
+            return Err(Error::DecodeError("opus: error creating decoder: {errstr}"));
         }
         Ok(Self { ptr, channels })
     }
@@ -48,9 +88,10 @@ impl Decoder {
                 0 as c_int,
             )
         };
-        if len < 0 {
-            warn!("decode failed with error code {len}");
-            return Err(Error::DecodeError("opus: decode failed"));
+        if let Some(err) = ErrorCode::from_c_int(len) {
+            let errstr = err.as_str();
+            warn!("decode failed with error: {errstr}");
+            return Err(Error::DecodeError("opus: decode failed: {errstr}"));
         }
         Ok(len as usize)
     }
@@ -59,8 +100,9 @@ impl Decoder {
         let result =
             unsafe { opusic_sys::opus_decoder_ctl(self.ptr, opusic_sys::OPUS_RESET_STATE) };
 
-        if result != opusic_sys::OPUS_OK {
-            warn!("reset failed with error code {result}");
+        if let Some(err) = ErrorCode::from_c_int(result) {
+            let errstr = err.as_str();
+            warn!("reset failed with error {errstr}");
         }
     }
 }
