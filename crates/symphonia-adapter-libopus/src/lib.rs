@@ -20,9 +20,13 @@ use crate::decoder::Decoder;
 
 mod decoder;
 
-const DEFAULT_SAMPLES_PER_CHANNEL: usize = 960;
-const MAX_SAMPLES_PER_CHANNEL: usize = 2880;
+/// Maximum sampling rate is 48 kHz for normal opus, and 96 kHz for Opus HD in the 1.6 spec.
+const MAX_SAMPLE_RATE: usize = 48000;
 const DEFAULT_SAMPLE_RATE: usize = 48000;
+/// Assuming 48 kHz sample rate with the default 20 ms frames.
+const DEFAULT_SAMPLES_PER_CHANNEL: usize = DEFAULT_SAMPLE_RATE * 20 / 1000;
+/// Opus maximum frame size is 60 ms, with worst case being 120 ms when combining frames per packet.
+const MAX_SAMPLES_PER_CHANNEL: usize = MAX_SAMPLE_RATE * 120 / 1000;
 
 /// Symphonia-compatible wrapper for the libopus decoder.
 pub struct OpusDecoder {
