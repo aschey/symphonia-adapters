@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.2.4..symphonia-adapter-libopus-v0.2.5) - 2025-12-20
+
+### Bug Fixes
+
+- Correct theoretical MAX_SAMPLES_PER_CHANNEL according to the Opus spec. ([#27](https://github.com/aschey/symphonia-adapters/issues/27)) - ([821e62f](https://github.com/aschey/symphonia-adapters/commit/821e62fe4859766096379bee5de346982ffb8aa7))
+
+### Features
+
+- Use f32 internally instead of i16. ([#26](https://github.com/aschey/symphonia-adapters/issues/26)) - ([ec15a10](https://github.com/aschey/symphonia-adapters/commit/ec15a10c9cb90e18f47918c6150b1b334e13ca46))
+- Handle Opus error codes ([#24](https://github.com/aschey/symphonia-adapters/issues/24)) - ([85cf74d](https://github.com/aschey/symphonia-adapters/commit/85cf74d0edb06df882790fb56a35ad68ce04b4cb))
+
+
 ## [0.2.4](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.2.3..symphonia-adapter-libopus-v0.2.4) - 2025-12-18
 
 ### Bug Fixes
