@@ -28,8 +28,8 @@ const DEFAULT_SAMPLE_RATE: usize = 48000;
 pub struct OpusDecoder {
     params: CodecParameters,
     decoder: Decoder,
-    buf: AudioBuffer<i16>,
-    pcm: [i16; MAX_SAMPLES_PER_CHANNEL * 2],
+    buf: AudioBuffer<f32>,
+    pcm: [f32; MAX_SAMPLES_PER_CHANNEL * 2],
     samples_per_channel: usize,
     sample_rate: u32,
     num_channels: usize,
@@ -107,7 +107,7 @@ impl codecs::Decoder for OpusDecoder {
                 DEFAULT_SAMPLES_PER_CHANNEL as u64,
                 num_channels,
             ),
-            pcm: [0; _],
+            pcm: [0.0; _],
             samples_per_channel: DEFAULT_SAMPLES_PER_CHANNEL,
             sample_rate,
             num_channels,
@@ -194,7 +194,7 @@ fn audio_buffer(
     sample_rate: u32,
     samples_per_channel: u64,
     num_channels: usize,
-) -> AudioBuffer<i16> {
+) -> AudioBuffer<f32> {
     let channels = map_to_channels(num_channels).expect("invalid channels");
     let spec = SignalSpec::new(sample_rate, channels);
     AudioBuffer::new(samples_per_channel, spec)
