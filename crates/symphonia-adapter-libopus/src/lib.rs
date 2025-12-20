@@ -23,15 +23,20 @@ use crate::decoder::Decoder;
 
 mod decoder;
 
-const DEFAULT_SAMPLES_PER_CHANNEL: usize = 960;
-const MAX_SAMPLES_PER_CHANNEL: usize = 2880;
+/// Maximum sampling rate is 48 kHz for normal opus, and 96 kHz for Opus HD in the 1.6 spec.
+const MAX_SAMPLE_RATE: usize = 48000;
+const DEFAULT_SAMPLE_RATE: usize = 48000;
+/// Assuming 48 kHz sample rate with the default 20 ms frames.
+const DEFAULT_SAMPLES_PER_CHANNEL: usize = DEFAULT_SAMPLE_RATE * 20 / 1000;
+/// Opus maximum frame size is 60 ms, with worst case being 120 ms when combining frames per packet.
+const MAX_SAMPLES_PER_CHANNEL: usize = MAX_SAMPLE_RATE * 120 / 1000;
 
 /// Symphonia-compatible wrapper for the libopus decoder.
 pub struct OpusDecoder {
     params: AudioCodecParameters,
     decoder: Decoder,
-    buf: AudioBuffer<i16>,
-    pcm: [i16; MAX_SAMPLES_PER_CHANNEL * 2],
+    buf: AudioBuffer<f32>,
+    pcm: [f32; MAX_SAMPLES_PER_CHANNEL * 2],
     samples_per_channel: usize,
     sample_rate: u32,
     num_channels: usize,
@@ -74,8 +79,9 @@ impl OpusDecoder {
         Ok(Self {
             params: params.to_owned(),
             decoder: Decoder::new(sample_rate, num_channels as u32)?,
+
             buf: audio_buffer(sample_rate, DEFAULT_SAMPLES_PER_CHANNEL, num_channels),
-            pcm: [0; _],
+            pcm: [0.0; _],
             samples_per_channel: DEFAULT_SAMPLES_PER_CHANNEL,
             sample_rate,
             num_channels,
@@ -158,7 +164,7 @@ fn audio_buffer(
     sample_rate: u32,
     samples_per_channel: usize,
     num_channels: usize,
-) -> AudioBuffer<i16> {
+) -> AudioBuffer<f32> {
     let channels = map_to_channels(num_channels).expect("invalid channels");
     let spec = AudioSpec::new(sample_rate, channels);
     AudioBuffer::new(spec, samples_per_channel)
