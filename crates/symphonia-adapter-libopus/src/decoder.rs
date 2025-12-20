@@ -3,6 +3,21 @@ use std::ffi::c_int;
 use log::{error, warn};
 use symphonia_core::errors::{Error, Result};
 
+fn error_code_to_str(code: c_int) -> &'static str {
+    match code {
+        opusic_sys::OPUS_BAD_ARG => "One or more invalid/out of range arguments.",
+        opusic_sys::OPUS_BUFFER_TOO_SMALL => "The mode struct passed is invalid.",
+        opusic_sys::OPUS_INTERNAL_ERROR => "An internal error was detected.",
+        opusic_sys::OPUS_INVALID_PACKET => "The compressed data passed is corrupted.",
+        opusic_sys::OPUS_UNIMPLEMENTED => "Invalid/unsupported request number.",
+        opusic_sys::OPUS_INVALID_STATE => {
+            "An encoder or decoder structure is invalid or already freed."
+        }
+        opusic_sys::OPUS_ALLOC_FAIL => "Memory allocation has failed. ",
+        _ => "",
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct Decoder {
     ptr: *mut opusic_sys::OpusDecoder,
@@ -27,7 +42,8 @@ impl Decoder {
             opusic_sys::opus_decoder_create(sample_rate as i32, channels as c_int, &mut error)
         };
         if error != opusic_sys::OPUS_OK {
-            error!("decoder failed to create with error code {error}");
+            let error_str = error_code_to_str(error);
+            error!("decoder failed to create with error code {error}: {error_str}");
             return Err(Error::DecodeError("opus: error creating decoder"));
         }
         Ok(Self { ptr, channels })
@@ -49,7 +65,8 @@ impl Decoder {
             )
         };
         if len < 0 {
-            warn!("decode failed with error code {len}");
+            let error_str = error_code_to_str(len);
+            warn!("decode failed with error code {len}: {error_str}");
             return Err(Error::DecodeError("opus: decode failed"));
         }
         Ok(len as usize)
@@ -60,7 +77,8 @@ impl Decoder {
             unsafe { opusic_sys::opus_decoder_ctl(self.ptr, opusic_sys::OPUS_RESET_STATE) };
 
         if result != opusic_sys::OPUS_OK {
-            warn!("reset failed with error code {result}");
+            let error_str = error_code_to_str(result);
+            warn!("reset failed with error code {result}: {error_str}");
         }
     }
 }
