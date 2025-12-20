@@ -3,42 +3,18 @@ use std::ffi::c_int;
 use log::{error, warn};
 use symphonia_core::errors::{Error, Result};
 
-pub enum ErrorCode {
-    BadArg,
-    BufferTooSmall,
-    InternalError,
-    InvalidPacket,
-    Unimplemented,
-    InvalidState,
-    AllocFail,
-}
-impl ErrorCode {
-    fn from_c_int(code: c_int) -> Option<Self> {
-        use ErrorCode::*;
-        match code {
-            opusic_sys::OPUS_OK => None,
-            opusic_sys::OPUS_BAD_ARG => Some(BadArg),
-            opusic_sys::OPUS_BUFFER_TOO_SMALL => Some(BufferTooSmall),
-            opusic_sys::OPUS_INTERNAL_ERROR => Some(InternalError),
-            opusic_sys::OPUS_INVALID_PACKET => Some(InvalidPacket),
-            opusic_sys::OPUS_UNIMPLEMENTED => Some(Unimplemented),
-            opusic_sys::OPUS_INVALID_STATE => Some(InvalidState),
-            opusic_sys::OPUS_ALLOC_FAIL => Some(AllocFail),
-            _ => None,
+fn error_code_to_str(code: c_int) -> &'static str {
+    match code {
+        opusic_sys::OPUS_BAD_ARG => "One or more invalid/out of range arguments.",
+        opusic_sys::OPUS_BUFFER_TOO_SMALL => "The mode struct passed is invalid.",
+        opusic_sys::OPUS_INTERNAL_ERROR => "An internal error was detected.",
+        opusic_sys::OPUS_INVALID_PACKET => "The compressed data passed is corrupted.",
+        opusic_sys::OPUS_UNIMPLEMENTED => "Invalid/unsupported request number.",
+        opusic_sys::OPUS_INVALID_STATE => {
+            "An encoder or decoder structure is invalid or already freed."
         }
-    }
-
-    const fn as_str(&self) -> &str {
-        use ErrorCode::*;
-        match self {
-            BadArg => "One or more invalid/out of range arguments.",
-            BufferTooSmall => "The mode struct passed is invalid.",
-            InternalError => "An internal error was detected.",
-            InvalidPacket => "The compressed data passed is corrupted.",
-            Unimplemented => "Invalid/unsupported request number.",
-            InvalidState => "An encoder or decoder structure is invalid or already freed.",
-            AllocFail => "Memory allocation has failed. ",
-        }
+        opusic_sys::OPUS_ALLOC_FAIL => "Memory allocation has failed. ",
+        _ => "",
     }
 }
 
@@ -65,10 +41,10 @@ impl Decoder {
         let ptr = unsafe {
             opusic_sys::opus_decoder_create(sample_rate as i32, channels as c_int, &mut error)
         };
-        if let Some(err) = ErrorCode::from_c_int(error) {
-            let errstr = err.as_str();
-            error!("decoder failed to create with error: {errstr}");
-            return Err(Error::DecodeError("opus: error creating decoder: {errstr}"));
+        if error != opusic_sys::OPUS_OK {
+            let error_str = error_code_to_str(error);
+            error!("decoder failed to create with error code {error}: {error_str}");
+            return Err(Error::DecodeError("opus: error creating decoder"));
         }
         Ok(Self { ptr, channels })
     }
@@ -88,10 +64,10 @@ impl Decoder {
                 0 as c_int,
             )
         };
-        if let Some(err) = ErrorCode::from_c_int(len) {
-            let errstr = err.as_str();
-            warn!("decode failed with error: {errstr}");
-            return Err(Error::DecodeError("opus: decode failed: {errstr}"));
+        if len < 0 {
+            let error_str = error_code_to_str(len);
+            warn!("decode failed with error code {len}: {error_str}");
+            return Err(Error::DecodeError("opus: decode failed"));
         }
         Ok(len as usize)
     }
@@ -100,9 +76,9 @@ impl Decoder {
         let result =
             unsafe { opusic_sys::opus_decoder_ctl(self.ptr, opusic_sys::OPUS_RESET_STATE) };
 
-        if let Some(err) = ErrorCode::from_c_int(result) {
-            let errstr = err.as_str();
-            warn!("reset failed with error {errstr}");
+        if result != opusic_sys::OPUS_OK {
+            let error_str = error_code_to_str(result);
+            warn!("reset failed with error code {result}: {error_str}");
         }
     }
 }
