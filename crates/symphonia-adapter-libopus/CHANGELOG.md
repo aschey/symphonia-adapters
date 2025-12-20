@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.2.4..symphonia-adapter-libopus-v0.2.5) - 2025-12-20
+
+
 ## [0.2.4](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.2.3..symphonia-adapter-libopus-v0.2.4) - 2025-12-18
 
 ### Bug Fixes
