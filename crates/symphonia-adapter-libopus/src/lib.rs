@@ -16,7 +16,7 @@ use symphonia_core::codecs::audio::{
 };
 use symphonia_core::codecs::registry::{RegisterableAudioDecoder, SupportedAudioCodec};
 use symphonia_core::errors::{Result, unsupported_error};
-use symphonia_core::formats::Packet;
+use symphonia_core::packet::Packet;
 use symphonia_core::support_audio_codec;
 
 use crate::decoder::Decoder;
@@ -120,8 +120,10 @@ impl AudioDecoder for OpusDecoder {
         self.buf.render_uninit(None);
         self.buf.copy_from_slice_interleaved(&pcm);
 
-        self.buf
-            .trim(packet.trim_start() as usize, packet.trim_end() as usize);
+        self.buf.trim(
+            packet.trim_start().get() as usize,
+            packet.trim_end().get() as usize,
+        );
         Ok(self.buf.as_generic_audio_buffer_ref())
     }
 
