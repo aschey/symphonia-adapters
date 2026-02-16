@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.2.5..symphonia-adapter-libopus-v0.2.6) - 2026-02-16
+
+### Bug Fixes
+
+- Return error on invalid slice length instead of panicking ([#32](https://github.com/aschey/symphonia-adapters/issues/32)) - ([563ebcd](https://github.com/aschey/symphonia-adapters/commit/563ebcdd4bbde5988fb3dc3da100bb8045e9db23))
+
+
 ## [0.2.5](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.2.4..symphonia-adapter-libopus-v0.2.5) - 2025-12-20
 
 ### Bug Fixes
