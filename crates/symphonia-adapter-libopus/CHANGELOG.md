@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.8](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.2.7..symphonia-adapter-libopus-v0.2.8) - 2026-05-02
+
+### Bug Fixes
+
+- Check both channels and channel_layout ([#42](https://github.com/aschey/symphonia-adapters/issues/42)) - ([6de8e6c](https://github.com/aschey/symphonia-adapters/commit/6de8e6c92fe5b7b17d29c4500d9a9f8aedb7fecf))
+
+
 ## [0.2.7](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.2.6..symphonia-adapter-libopus-v0.2.7) - 2026-03-21
 
 ### Miscellaneous Tasks
