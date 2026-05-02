@@ -82,7 +82,12 @@ impl codecs::Decoder for OpusDecoder {
     where
         Self: Sized,
     {
-        let num_channels = if let Some(channels) = &params.channels {
+        let channels = params
+            .channel_layout
+            .map(|c| c.into_channels())
+            .or(params.channels);
+
+        let num_channels = if let Some(channels) = &channels {
             channels.count()
         } else {
             return unsupported_error("opus: channels or channel layout is required");
