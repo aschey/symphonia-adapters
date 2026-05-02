@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.9](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.2.8..symphonia-adapter-libopus-v0.2.9) - 2026-05-02
+
+### Miscellaneous Tasks
+
+- Update Cargo.toml dependencies - ([0000000](https://github.com/aschey/symphonia-adapters/commit/0000000))
+
+
 ## [0.2.8](https://github.com/aschey/symphonia-adapters/compare/symphonia-adapter-libopus-v0.2.7..symphonia-adapter-libopus-v0.2.8) - 2026-05-02
 
 ### Bug Fixes
