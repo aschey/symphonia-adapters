@@ -23,7 +23,8 @@ use symphonia_core::codecs::audio::{
 };
 use symphonia_core::codecs::registry::{RegisterableAudioDecoder, SupportedAudioCodec};
 use symphonia_core::errors::{Error, unsupported_error};
-use symphonia_core::packet::Packet;
+use symphonia_core::io::FiniteStream;
+use symphonia_core::packet::PacketRef;
 use symphonia_core::{codec_profile, support_audio_codec};
 
 use crate::adts::construct_adts_header;
@@ -147,15 +148,17 @@ impl AudioDecoder for AacDecoder {
         &self.codec_params
     }
 
-    fn decode(&mut self, packet: &Packet) -> Result<GenericAudioBufferRef<'_>> {
+    fn decode_ref(&mut self, packet: &PacketRef) -> Result<GenericAudioBufferRef<'_>> {
+        let mut reader = packet.as_buf_reader();
         let adts_header = construct_adts_header(
             self.m4a_info.otype,
             self.m4a_info.sample_rate_index,
             self.m4a_info.channels,
-            packet.buf().len(),
+            reader.byte_len(),
         );
+
         self.decoder
-            .fill(&[&adts_header, packet.buf()].concat())
+            .fill(&[&adts_header, reader.read_buf_bytes_available_ref()].concat())
             .map_err(|e| Error::DecodeError(e.message()))?;
 
         match self.decoder.decode_frame(&mut self.pcm) {
@@ -180,8 +183,8 @@ impl AudioDecoder for AacDecoder {
         self.buf.render_uninit(None);
         self.buf.copy_from_slice_interleaved(&pcm);
         self.buf.trim(
-            packet.trim_start().get() as usize,
-            packet.trim_end().get() as usize,
+            packet.trim_start.get() as usize,
+            packet.trim_end.get() as usize,
         );
 
         Ok(self.buf.as_generic_audio_buffer_ref())

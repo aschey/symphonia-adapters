@@ -16,7 +16,6 @@ use symphonia_core::codecs::audio::{
 };
 use symphonia_core::codecs::registry::{RegisterableAudioDecoder, SupportedAudioCodec};
 use symphonia_core::errors::{Result, unsupported_error};
-use symphonia_core::packet::Packet;
 use symphonia_core::support_audio_codec;
 
 use crate::decoder::Decoder;
@@ -105,8 +104,11 @@ impl AudioDecoder for OpusDecoder {
         &self.params
     }
 
-    fn decode(&mut self, packet: &Packet) -> Result<GenericAudioBufferRef<'_>> {
-        let samples_per_channel = self.decoder.decode(&packet.data, &mut self.pcm)?;
+    fn decode_ref(
+        &mut self,
+        packet: &symphonia_core::packet::PacketRef<'_>,
+    ) -> Result<GenericAudioBufferRef<'_>> {
+        let samples_per_channel = self.decoder.decode(packet.data, &mut self.pcm)?;
 
         if samples_per_channel != self.samples_per_channel {
             self.buf = audio_buffer(self.sample_rate, samples_per_channel, self.num_channels);
@@ -121,8 +123,8 @@ impl AudioDecoder for OpusDecoder {
         self.buf.copy_from_slice_interleaved(&pcm);
 
         self.buf.trim(
-            packet.trim_start().get() as usize,
-            packet.trim_end().get() as usize,
+            packet.trim_start.get() as usize,
+            packet.trim_end.get() as usize,
         );
         Ok(self.buf.as_generic_audio_buffer_ref())
     }

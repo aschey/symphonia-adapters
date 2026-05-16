@@ -37,12 +37,8 @@ fn test_decode(file: File) {
         .make_audio_decoder(codec_params, &Default::default())
         .unwrap();
 
-    loop {
-        let Some(packet) = reader.next_packet().unwrap() else {
-            break;
-        };
-
-        if packet.track_id() != track_id {
+    while let Some(packet) = reader.next_packet().unwrap() {
+        if packet.track_id != track_id {
             continue;
         }
         decoder.decode(&packet).map(|_| ()).unwrap();

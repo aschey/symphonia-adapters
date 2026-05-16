@@ -9,7 +9,7 @@ pub(crate) fn construct_adts_header(
     object_type: M4AType,
     sample_freq_index: u8,
     channel_config: u8,
-    num_bytes: usize,
+    num_bytes: u64,
 ) -> Vec<u8> {
     // ADTS header wiki reference: https://wiki.multimedia.cx/index.php/ADTS#:~:text=Audio%20Data%20Transport%20Stream%20(ADTS,to%20stream%20audio%2C%20usually%20AAC.
 
