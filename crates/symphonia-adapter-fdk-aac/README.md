@@ -21,15 +21,21 @@ Ensure Symphonia's native AAC decoder is not also registered since they will
 conflict with each other.
 
 ```rust
-use symphonia_core::codecs::CodecRegistry;
+use symphonia_core::codecs::registry::CodecRegistry;
 use symphonia_adapter_fdk_aac::AacDecoder;
 
 let mut codec_registry = CodecRegistry::new();
-codec_registry.register_all::<AacDecoder>();
+codec_registry.register_audio_decoder::<AacDecoder>();
 // register other codecs
 
 // use codec_registry created above instead of symphonia::default::get_codecs();
 ```
+
+## Symphonia Compatibility
+
+The 0.1 series of releases is compatible with Symphonia 0.5.
+
+The 0.2 series and later are compatible with Symphonia 0.6.
 
 ## License
 

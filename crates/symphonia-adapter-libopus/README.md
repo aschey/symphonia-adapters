@@ -18,11 +18,11 @@ details on how to configure linking libopus.
 ## Usage
 
 ```rust
-use symphonia_core::codecs::CodecRegistry;
+use symphonia_core::codecs::registry::CodecRegistry;
 use symphonia_adapter_libopus::OpusDecoder;
 
 let mut codec_registry = CodecRegistry::new();
-codec_registry.register_all::<OpusDecoder>();
+codec_registry.register_audio_decoder::<OpusDecoder>();
 // register other codecs
 
 // use codec_registry created above instead of symphonia::default::get_codecs();
@@ -33,6 +33,12 @@ codec_registry.register_all::<OpusDecoder>();
 By default `libopus` will be compiled and bundled into the resulting binary.
 
 To disable this, set `default-features = false`. Or to explicitly enable bundling add feature `bundled`.
+
+## Symphonia Compatibility
+
+The 0.1 and 0.2 series of releases are compatible with Symphonia 0.5.
+
+The 0.3 series and later are compatible with Symphonia 0.6.
 
 ## License
 
